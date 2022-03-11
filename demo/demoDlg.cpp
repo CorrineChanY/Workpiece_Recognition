@@ -7,12 +7,13 @@
 #include "demo.h"
 #include "demoDlg.h"
 #include "afxdialogex.h"
+#include "digital.h"
+
 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -73,6 +74,10 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_StartGrab, &CdemoDlg::OnBnClickedStartgrab)
 	ON_BN_CLICKED(IDC_CloseCam, &CdemoDlg::OnBnClickedClosecam)
 	ON_STN_CLICKED(pic, &CdemoDlg::OnStnClickedpic)
+	//ON_BN_CLICKED(IDC_BUTTON1, &CdemoDlg::OnBnClickedButton1)
+	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
+	//ON_BN_CLICKED(IDC_BUTTON3, &CdemoDlg::OnBnClickedButton3)
+	ON_BN_CLICKED(endRecg, &CdemoDlg::OnBnClickedendrecg)
 END_MESSAGE_MAP()
 
 
@@ -208,6 +213,7 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetHeight(m_hCam, &h);
 	MVGetPixelFormat(m_hCam, &m_PixelFormat);
 	m_image.CreateByPixelFormat(w, h, m_PixelFormat);
+	m_imageDid.CreateByPixelFormat(w, h, m_PixelFormat);
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
@@ -215,22 +221,30 @@ void CdemoDlg::OnBnClickedOpencam()
 }
 void CdemoDlg::DrawImage()
 {
-	CRect rct;
+	CRect rct;//长方形窗口数据
 	GetDlgItem(pic)->GetClientRect(&rct);
-	int dstW = rct.Width();
-	int dstH = rct.Height();
+	//GetClientRect 用于取得指定窗口的客户区域大小
+	//GetDlgItem 假设一个父窗口中有多个子窗口。那么本函数是返回一个子窗口句柄。
+	int dstW = rct.Width();//获得长方体窗口的宽度
+	int dstH = rct.Height();//获得长方体窗口的高度
 	CDC* pDC = GetDlgItem(pic)->GetDC();
 	{
 		pDC->SetStretchBltMode(COLORONCOLOR);
 		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
 	}
 	ReleaseDC(pDC);
+	//用GetDC()得到的DC, 必须调用ReleaseDC()
 }
 
 int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 {
-
+	Digital digi;
 	MVInfo2Image(m_hCam, pInfo, &m_image);
+	if(Recgon == 1)
+	{
+		//digi.Image_Gray(m_image, m_imageDid);
+		Image_Gray();
+	}
 	DrawImage();
 	return 0;
 }
@@ -245,13 +259,14 @@ void CdemoDlg::OnBnClickedStartgrab()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	TriggerModeEnums enumMode;
+	Recgon = 0;
 	MVGetTriggerMode(m_hCam, &enumMode);
 	if (enumMode != TriggerMode_Off)
 	{
 		MVSetTriggerMode(m_hCam, TriggerMode_Off);
 		Sleep(100);
 	}
-	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this);
+	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this);//采集图像
 	m_bRun = true;
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
@@ -284,4 +299,124 @@ void CdemoDlg::OnClose()
 	}
 	MVTerminateLib();
 	CDialog::OnClose();
+}
+
+
+void CdemoDlg::OnBnClickedstartrecg()//打开识别按钮
+{
+	// TODO: 在此添加控件通知处理程序代码
+	Recgon = 1;
+}
+
+
+void CdemoDlg::OnBnClickedendrecg()//关闭识别按钮
+{
+	// TODO: 在此添加控件通知处理程序代码
+	Recgon = 0;
+}
+
+void CdemoDlg::Image_Gray()
+{
+	int w;
+	int h;
+	unsigned char* p = (unsigned char*)m_image.GetBits();
+	unsigned char* pDst = (unsigned char*)m_image.GetBits();
+	unsigned char* pcur;
+	double sum[3] = { 0, 0, 0 };
+	double count = 0;
+	int i, j, k, s;
+
+	w = m_image.GetWidth();
+	h = m_image.GetHeight();
+	
+	count = w * h;
+	for (i = 0; i < count; i++)
+	{
+		for (j = 0; j < 3; j++)
+		{
+			sum[j]= sum[j] + *p;
+			p++;
+		}
+		
+	}
+	for (i = 0; i < 3; i++)
+	{
+		sum[i] = sum[i] / count;
+	}
+	p = (unsigned char*)m_image.GetBits();
+	for (j = 0; j < h; j++)
+	{
+		for (i = 0; i < w; i++)
+		{
+			s = 0;
+			pcur = p;
+			for (int k = 0; k < 3; k++)
+			{
+				if (*pcur > sum[k])
+				{
+					s = 1;
+					break;
+				}
+				pcur++;
+			}
+			if (s == 1)
+			{
+				for (int k = 0; k < 3; k++)
+				{
+					*pDst = 255;
+					pDst++;
+					p++;
+				}
+			}
+			else {
+				for (int k = 0; k < 3; k++)
+				{
+					*pDst = 0;
+					pDst++;
+					p++;
+				}
+			}
+		}
+	}
+	pDst = (unsigned char*)m_image.GetBits();
+	pDst = pDst + 3 * w + 3;
+	for (j = 1; j < h - 1; j++)
+	{
+		for (i = 1; i < w - 1; i++)
+		{
+			for (int k = 0; k < 3; k++)
+			{
+				//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
+				*pDst = (*pDst + *(pDst - 3) + *(pDst + 3) + *(pDst - 3 * w) + *(pDst + 3 * w) + *(pDst - 3 * w - 3) + *(pDst - 3 * w + 3) + *(pDst + 3 * w - 3) + *(pDst + 3 * w + 3)) / 9;
+				pDst++;
+			}
+		}
+	}
+
+}
+
+unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 
+	unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7, 
+	unsigned char n8, unsigned char n9)
+{
+	unsigned char arr[9];
+	unsigned char temp;
+	arr[0] = n1;
+	arr[1] = n2;
+	arr[2] = n3;
+	arr[3] = n4;
+	arr[4] = n5;
+	arr[5] = n6;
+	arr[6] = n7;
+	arr[7] = n8;
+	arr[8] = n9;
+	for (int gap = 9 / 2; gap > 0; gap /= 2)//希尔排序
+		for (int i = gap; i < 9; ++i)
+			for (int j = i - gap; j >= 0 && arr[j] > arr[j + gap]; j -= gap)
+			{
+				temp = arr[j];
+				arr[j] = arr[j + gap];
+				arr[j + gap] = temp;
+			}
+	return arr[4];//返回中值
 }

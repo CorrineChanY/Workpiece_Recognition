@@ -539,13 +539,13 @@ void CdemoDlg::Susan()
 	unsigned char* pOrg = (unsigned char*)m_image.GetBits();
 	int i, j, m, n;
 	int w, h;
-	char* Susan = NULL; // Susan矩阵
+	unsigned char* Susan = NULL; // Susan矩阵
 	int c;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
-	Susan = (char*)malloc(h * w * sizeof(char));
+	Susan = (unsigned char*)malloc(static_cast<unsigned long long>(h) * w * sizeof(unsigned char));
 
 
 	// 形成Susan矩阵
@@ -555,12 +555,13 @@ void CdemoDlg::Susan()
 			for (m = 0; m < 3; m++) {
 				for ( n = 0; n < 3; n++)
 				{
-					c += exp(-1 * pow((*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) / 30, 2)); // T=130
-					//c += abs(*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) > 130 ? 1 : 0;
+					c += exp(-1 * pow((*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) / 180, 2)); // T=130
+					//c += abs(*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) > 200 ? 1 : 0;
 				}
 			}
 			if (c < 6) *(Susan + i * w + j) = 6 - c;
 			else *(Susan + i * w + j) = 0;
+			cout << *(Susan + i * w + j);
 		}
 	}
 
@@ -572,8 +573,8 @@ void CdemoDlg::Susan()
 		for (j = 0; j < w; j++) {
 			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示蓝色
 			{
-				*(pOrg + i * w * 3 + j * 3) = 0;
-				*(pOrg + i * w * 3 + j * 3 + 1) = 0;
+				*(pOrg + i * w * 3 + j * 3) = 255;
+				*(pOrg + i * w * 3 + j * 3 + 1) = 255;
 				*(pOrg + i * w * 3 + j*3 + 2) = 255;
 			}
 			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示绿色

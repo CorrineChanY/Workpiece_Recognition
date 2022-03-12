@@ -347,12 +347,12 @@ void CdemoDlg::Image_Gray()
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pcur;
-	double sum = 0;
+	double *sum = NULL;
 	double sum1 = 0;
 	double count = 0;
 	int i, j, a, b;
-	int h0 = 20;
-	int w0 = 20;
+	int h0 = 10;
+	int w0 = 10;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
@@ -363,35 +363,46 @@ void CdemoDlg::Image_Gray()
 	{
 		sum1 = sum1 + *p;
 		p++;
-		
 	}
-	
-	sum1 = sum1 / count;
-	
-	
+	sum1 /= count;
+	p = (unsigned char*)m_imageGray.GetBits();
+	/*
+	sum = (double*)malloc(h / h0 * w / w0 * sizeof(double));
+	for (i = 0; i < h / h0; i++)
+	{
+		for (j = 0; j < w / w0; j++)
+		{
+			pcur = p + i * h0 * w + j * w0;
+			sum[i * w / w0 + j] = 0;
+			for (a = 0; a < h0; a++)
+			{
+				for (b = 0; b < w0; b++)
+				{
+					sum[i * w / w0 + j] += *(pcur + a * w + b);
+				}
+			}
+			sum[i * w / w0 + j] /= w0 * h0;
+		}
+	}*/
+	/*
 	p = (unsigned char*)m_imageGray.GetBits();
 	for (j = 0; j < h; j++)
 	{
 		for (i = 0; i < w; i++)
 		{
-			if ((j < h0 / 2) || (j > h - h0 / 2) || (i < w0 / 2) || (i > w - w0 / 2))
+			if ((*p - sum[j / h0 * w / w0 + i / w0]) > 200)
 			{
-				sum = sum1;
+				*pDst = 255;
+				pDst++;
+				p++;
 			}
-			else {
-				pcur = p - h0 / 2 * w - w0 / 2;
-				sum = 0;
-				for (a = 0; a < h0; a++)
-				{
-					for (b = 0; b < w0; b++)
-					{
-						sum = sum + *(pcur + a * w + b);
-					}
-					sum / h0 / w0;
-				}
-			}
-			if (*p > sum)
+			else if ((sum[j / h0 * w / w0 + i / w0] - *p) > 200)
 			{
+				*pDst = 0;
+				pDst++;
+				p++;
+			}
+			else if (*p > sum1) {
 				*pDst = 255;
 				pDst++;
 				p++;
@@ -414,9 +425,28 @@ void CdemoDlg::Image_Gray()
 				//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
 				*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9;
 				pDst++;
-			}
 		}
 	}*/
+
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageGray.GetBits();
+	for (j = 0; j < h; j++)
+	{
+		for (i = 0; i < w; i++)
+		{
+			if (*p > sum1) {
+				*pDst = 255;
+				pDst++;
+				p++;
+			}
+			else {
+				*pDst = 0;
+				pDst++;
+				p++;
+			}
+		}
+	}
+
 	p = (unsigned char*)m_imageGray.GetBits();
 	pDst = (unsigned char*)m_imageDid.GetBits();
 	for (i = 0; i < h; i++)
@@ -428,10 +458,8 @@ void CdemoDlg::Image_Gray()
 				p++;
 		}
 	}
-	Corrode();
-	Corrode();
-	Expand();
-	Expand();
+	//Corrode();
+	//Expand();
 }
 
 unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 

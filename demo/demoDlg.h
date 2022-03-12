@@ -42,6 +42,7 @@ public:
 	MVImage m_image;
 	//定义图像处理后的对象
 	MVImage m_imageDid;
+	MVImage m_imageGray;
 	//定义像素格式对象
 	MV_PixelFormatEnums m_PixelFormat;
 	//采集标识
@@ -50,6 +51,7 @@ public:
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
 	//画图
 	void DrawImage();
+	void DrawImage2();
 	//关闭相机、释放资源
 	void OnClose();
 	//判断是否需要开始识别
@@ -57,6 +59,8 @@ public:
 	unsigned char Median(unsigned char n1, unsigned char n2, unsigned char n3,
 		unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7,
 		unsigned char n8, unsigned char n9);
+	void Corrode();
+	void Expand();
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();
@@ -69,4 +73,5 @@ public:
 	afx_msg void OnBnClickedstartrecg();
 	afx_msg void OnBnClickedButton3();
 	afx_msg void OnBnClickedendrecg();
+	afx_msg void OnStnClicked2();
 };

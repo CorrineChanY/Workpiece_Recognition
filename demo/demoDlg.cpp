@@ -213,7 +213,8 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetHeight(m_hCam, &h);
 	MVGetPixelFormat(m_hCam, &m_PixelFormat);
 	m_image.CreateByPixelFormat(w, h, m_PixelFormat);
-	m_imageDid.CreateByPixelFormat(w, h, m_PixelFormat);
+	m_imageGray.CreateByPixelFormat(w, h, PixelFormat_Mono8);
+	m_imageDid.CreateByPixelFormat(w, h, PixelFormat_Mono8);
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
@@ -230,7 +231,24 @@ void CdemoDlg::DrawImage()
 	CDC* pDC = GetDlgItem(pic)->GetDC();
 	{
 		pDC->SetStretchBltMode(COLORONCOLOR);
-		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+	}
+	ReleaseDC(pDC);
+	//用GetDC()得到的DC, 必须调用ReleaseDC()
+}
+
+void CdemoDlg::DrawImage2()
+{
+	CRect rct;//长方形窗口数据
+	GetDlgItem(picd)->GetClientRect(&rct);
+	//GetClientRect 用于取得指定窗口的客户区域大小
+	//GetDlgItem 假设一个父窗口中有多个子窗口。那么本函数是返回一个子窗口句柄。
+	int dstW = rct.Width();//获得长方体窗口的宽度
+	int dstH = rct.Height();//获得长方体窗口的高度
+	CDC* pDC = GetDlgItem(picd)->GetDC();
+	{
+		pDC->SetStretchBltMode(COLORONCOLOR);
+		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
 	}
 	ReleaseDC(pDC);
 	//用GetDC()得到的DC, 必须调用ReleaseDC()
@@ -239,10 +257,17 @@ void CdemoDlg::DrawImage()
 int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 {
 	Digital digi;
+	unsigned char* p = (unsigned char*)m_image.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
+	int w, h;
 	MVInfo2Image(m_hCam, pInfo, &m_image);
+	w = m_image.GetWidth();
+	h = m_image.GetHeight();
+	MVBGRToGray(m_hCam, p, pDst, w, h);
 	if(Recgon == 1)
 	{
-		//digi.Image_Gray(m_image, m_imageDid);
+		//digi.Image_
+		(m_image, m_imageDid);
 		Image_Gray();
 	}
 	DrawImage();
@@ -319,79 +344,75 @@ void CdemoDlg::Image_Gray()
 {
 	int w;
 	int h;
-	unsigned char* p = (unsigned char*)m_image.GetBits();
-	unsigned char* pDst = (unsigned char*)m_image.GetBits();
-	unsigned char* pcur;
-	double sum[3] = { 0, 0, 0 };
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
+	double sum = 0;
 	double count = 0;
-	int i, j, k, s;
+	int i, j;
 
-	w = m_image.GetWidth();
-	h = m_image.GetHeight();
-	
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+	//Kittle 二值分割
 	count = w * h;
 	for (i = 0; i < count; i++)
 	{
-		for (j = 0; j < 3; j++)
-		{
-			sum[j]= sum[j] + *p;
-			p++;
-		}
+		sum = sum + *p;
+		p++;
 		
 	}
-	for (i = 0; i < 3; i++)
-	{
-		sum[i] = sum[i] / count;
-	}
-	p = (unsigned char*)m_image.GetBits();
+	
+	sum = sum / count;
+	
+	
+	p = (unsigned char*)m_imageGray.GetBits();
 	for (j = 0; j < h; j++)
 	{
 		for (i = 0; i < w; i++)
 		{
-			s = 0;
-			pcur = p;
-			for (int k = 0; k < 3; k++)
+			if (*p > sum)
 			{
-				if (*pcur > sum[k])
-				{
-					s = 1;
-					break;
-				}
-				pcur++;
-			}
-			if (s == 1)
-			{
-				for (int k = 0; k < 3; k++)
-				{
-					*pDst = 255;
-					pDst++;
-					p++;
-				}
+				*pDst = 255;
+				pDst++;
+				p++;
 			}
 			else {
-				for (int k = 0; k < 3; k++)
-				{
-					*pDst = 0;
-					pDst++;
-					p++;
-				}
+				*pDst = 0;
+				pDst++;
+				p++;
 			}
 		}
 	}
-	pDst = (unsigned char*)m_image.GetBits();
-	pDst = pDst + 3 * w + 3;
+	//滤波
+	/*
+	pDst = (unsigned char*)m_imageGray.GetBits();
+	pDst = pDst + w + 1;
 	for (j = 1; j < h - 1; j++)
 	{
 		for (i = 1; i < w - 1; i++)
 		{
-			for (int k = 0; k < 3; k++)
-			{
 				//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
-				*pDst = (*pDst + *(pDst - 3) + *(pDst + 3) + *(pDst - 3 * w) + *(pDst + 3 * w) + *(pDst - 3 * w - 3) + *(pDst - 3 * w + 3) + *(pDst + 3 * w - 3) + *(pDst + 3 * w + 3)) / 9;
+				*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9;
 				pDst++;
 			}
 		}
+	}*/
+	DrawImage2();
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 1; j < w; j++)
+		{
+				*pDst = *p;
+				pDst++;
+				p++;
+		}
 	}
+	Corrode();
+	Corrode();
+	Expand();
+	Expand();
+	
 
 }
 
@@ -419,4 +440,90 @@ unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char
 				arr[j + gap] = temp;
 			}
 	return arr[4];//返回中值
+}
+
+void CdemoDlg::Corrode()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
+	unsigned char* pcur;
+	int i, j, k;
+	int w, h;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	for (i = 2; i < h - 2; i++)
+	{
+		for (j = 2; j < w - 2; j++)
+		{
+			pcur = p + i * w + j;
+
+			if (*(pcur - 1) == 255 || *(pcur + 1) == 255 ||
+				*(pcur - w) == 255 || *(pcur + w) == 255 ||
+				*(pcur - w - 1) == 255 || *(pcur - w + 1) == 255 ||
+				*(pcur + w - 1) == 255 || *(pcur + w + 1) == 255 ||
+				*(pcur - 2) == 255 || *(pcur + 2) == 255 ||
+				*(pcur - 2 * w) == 255 || *(pcur + 2 * w) == 255 || 
+				*(pcur - w - 2) == 255 || *(pcur - w + 2) == 255 ||
+				*(pcur + w -2) == 255 || *(pcur + w + 2) == 255)
+			{
+					*(pDst + i * w + j) = 255;
+			}
+		}
+	}
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++)
+		{
+			*p = *pDst;
+			pDst++;
+			p++;
+		}
+	}
+}
+
+void CdemoDlg::Expand()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
+	unsigned char* pcur;
+	int i, j, k;
+	int w, h;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	for (i = 2; i < h - 2; i++)
+	{
+		for (j = 2; j < w - 2; j++)
+		{
+			pcur = p + i * w + j;
+
+			if (*(pcur - 1) == 0 || *(pcur + 1) == 0 ||
+				*(pcur - w) == 0 || *(pcur + w) == 0 ||
+				*(pcur - w - 1) == 0 || *(pcur - w + 1) == 0 ||
+				*(pcur + w - 1) == 0 || *(pcur + w + 1) == 0 ||
+				*(pcur - 2) == 0 || *(pcur + 2) == 0 ||
+				*(pcur - 2 * w) == 0 || *(pcur + 2 * w) == 0 ||
+				*(pcur - w - 2) == 0 || *(pcur - w + 2) == 0 ||
+				*(pcur + w - 2) == 0 || *(pcur + w + 2) == 0)
+			{
+				*(pDst + i * w + j) = 0;
+			}
+		}
+	}
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++)
+		{
+			*p = *pDst;
+			pDst++;
+			p++;
+		}
+	}
 }

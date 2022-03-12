@@ -8,6 +8,9 @@
 #include "demoDlg.h"
 #include "afxdialogex.h"
 #include "digital.h"
+#include<malloc.h>
+#include<iostream>
+using namespace std;
 
 
 
@@ -536,38 +539,48 @@ void CdemoDlg::Susan()
 	unsigned char* pOrg = (unsigned char*)m_image.GetBits();
 	int i, j, m, n;
 	int w, h;
-	int* Susan = NULL; // Susan矩阵
+	char* Susan = NULL; // Susan矩阵
 	int c;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
+	Susan = (char*)malloc(h * w * sizeof(char));
+
+
 	// 形成Susan矩阵
-	for (i = 1; i < h - 1; i++) {
-		for (j = 1; j < w - 1; j++) {
+	for (i = 3; i < h - 3; i++) {
+		for (j = 3; j < w - 3; j++) {
 			c = 0;
 			for (m = 0; m < 3; m++) {
 				for ( n = 0; n < 3; n++)
 				{
-					c += exp(-1 * pow((* (p)-*(p - w - 1 + 3 * m + n))/130, 2)); // T=130
+					c += exp(-1 * pow((*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) / 30, 2)); // T=130
+					//c += abs(*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) > 130 ? 1 : 0;
 				}
 			}
-			if (c < 6) *(Susan + i * w + j) = int(6 - c);
+			if (c < 6) *(Susan + i * w + j) = 6 - c;
 			else *(Susan + i * w + j) = 0;
 		}
 	}
+
+	//cout << *Susan;
 
 	// 判断角点和边缘
 	for ( i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++) {
-			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示红色
+			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示蓝色
 			{
-				*(pOrg + i * w * 3 + j) = 255;
+				*(pOrg + i * w * 3 + j * 3) = 0;
+				*(pOrg + i * w * 3 + j * 3 + 1) = 0;
+				*(pOrg + i * w * 3 + j*3 + 2) = 255;
 			}
 			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示绿色
 			{
-				*(pOrg + i * w * 3 + j+1) = 255;
+				*(pOrg + i * w * 3 + j * 3) = 0;
+				*(pOrg + i * w * 3 + j*3 + 1) = 255;
+				*(pOrg + i * w * 3 + j * 3 + 2) = 0;
 			}
 		}
 	}

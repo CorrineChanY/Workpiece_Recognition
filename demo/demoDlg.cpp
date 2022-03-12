@@ -346,22 +346,27 @@ void CdemoDlg::Image_Gray()
 	int h;
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pcur;
 	double sum = 0;
+	double sum1 = 0;
 	double count = 0;
-	int i, j;
+	int i, j, a, b;
+	int h0 = 20;
+	int w0 = 20;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 	//Kittle 二值分割
+	DrawImage2();
 	count = w * h;
 	for (i = 0; i < count; i++)
 	{
-		sum = sum + *p;
+		sum1 = sum1 + *p;
 		p++;
 		
 	}
 	
-	sum = sum / count;
+	sum1 = sum1 / count;
 	
 	
 	p = (unsigned char*)m_imageGray.GetBits();
@@ -369,6 +374,22 @@ void CdemoDlg::Image_Gray()
 	{
 		for (i = 0; i < w; i++)
 		{
+			if ((j < h0 / 2) || (j > h - h0 / 2) || (i < w0 / 2) || (i > w - w0 / 2))
+			{
+				sum = sum1;
+			}
+			else {
+				pcur = p - h0 / 2 * w - w0 / 2;
+				sum = 0;
+				for (a = 0; a < h0; a++)
+				{
+					for (b = 0; b < w0; b++)
+					{
+						sum = sum + *(pcur + a * w + b);
+					}
+					sum / h0 / w0;
+				}
+			}
 			if (*p > sum)
 			{
 				*pDst = 255;
@@ -396,7 +417,6 @@ void CdemoDlg::Image_Gray()
 			}
 		}
 	}*/
-	DrawImage2();
 	p = (unsigned char*)m_imageGray.GetBits();
 	pDst = (unsigned char*)m_imageDid.GetBits();
 	for (i = 0; i < h; i++)
@@ -412,8 +432,6 @@ void CdemoDlg::Image_Gray()
 	Corrode();
 	Expand();
 	Expand();
-	
-
 }
 
 unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 

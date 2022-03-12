@@ -61,6 +61,7 @@ public:
 		unsigned char n8, unsigned char n9);
 	void Corrode();
 	void Expand();
+	void Susan();
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();

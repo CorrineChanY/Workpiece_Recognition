@@ -231,7 +231,8 @@ void CdemoDlg::DrawImage()
 	CDC* pDC = GetDlgItem(pic)->GetDC();
 	{
 		pDC->SetStretchBltMode(COLORONCOLOR);
-		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+		//m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
 	}
 	ReleaseDC(pDC);
 	//用GetDC()得到的DC, 必须调用ReleaseDC()
@@ -413,6 +414,7 @@ void CdemoDlg::Image_Gray()
 	Expand();
 	Expand();
 	
+	Susan();
 
 }
 
@@ -524,6 +526,49 @@ void CdemoDlg::Expand()
 			*p = *pDst;
 			pDst++;
 			p++;
+		}
+	}
+}
+
+void CdemoDlg::Susan()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pOrg = (unsigned char*)m_image.GetBits();
+	int i, j, m, n;
+	int w, h;
+	int* Susan = NULL; // Susan矩阵
+	int c;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	// 形成Susan矩阵
+	for (i = 1; i < h - 1; i++) {
+		for (j = 1; j < w - 1; j++) {
+			c = 0;
+			for (m = 0; m < 3; m++) {
+				for ( n = 0; n < 3; n++)
+				{
+					c += exp(-1 * pow((* (p)-*(p - w - 1 + 3 * m + n))/130, 2)); // T=130
+				}
+			}
+			if (c < 6) *(Susan + i * w + j) = int(6 - c);
+			else *(Susan + i * w + j) = 0;
+		}
+	}
+
+	// 判断角点和边缘
+	for ( i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++) {
+			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示红色
+			{
+				*(pOrg + i * w * 3 + j) = 255;
+			}
+			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示绿色
+			{
+				*(pOrg + i * w * 3 + j+1) = 255;
+			}
 		}
 	}
 }

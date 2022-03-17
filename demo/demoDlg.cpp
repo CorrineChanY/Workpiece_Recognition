@@ -7,15 +7,17 @@
 #include "demo.h"
 #include "demoDlg.h"
 #include "afxdialogex.h"
+#include "digital.h"
+#include<malloc.h>
+#include<iostream>
 #include <fstream>
-#include <iostream>
 using namespace std;
+
 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -126,7 +128,7 @@ BOOL CdemoDlg::OnInitDialog()
 		MessageBox(_T("查找连接计算机的相机失败！"), _T("提示"), MB_ICONWARNING);
 		return TRUE;
 	}
-	GetDlgItem(IDC_OpenCam)->EnableWindow(false); // 暂时变成不可点击
+	GetDlgItem(IDC_OpenCam)->EnableWindow(true);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -189,7 +191,6 @@ void CdemoDlg::OnBnClickedOk()
 	CDialogEx::OnOK();
 }
 
-// “打开相机”点击事件
 void CdemoDlg::OnBnClickedOpencam()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -197,14 +198,14 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetNumOfCameras(&nCams);
 	if (nCams == 0)
 	{
-		MessageBox(_T("没有找到相机, 请确认连接和相机IP设置 "), _T("提示"),MB_ICONWARNING);
+		MessageBox(_T(" 没 有 找 到 相 机 , 请确认连接和相机 IP 设 置 "), _T(" 提 示"),MB_ICONWARNING);
 			return;
 	}
 	MVSTATUS_CODES r = MVOpenCamByIndex(0, &m_hCam);
 	if (m_hCam == NULL)
 	{
 		if (r == MVST_ACCESS_DENIED)
-			MessageBox(_T("无法打开相机，可能正被别的软件控制 "), _T("提示 "),MB_ICONWARNING);
+			MessageBox(_T(" 无 法 打 开 相 机 ， 可 能 正 被 别 的 软 件 控 制 "), _T(" 提 示 "),MB_ICONWARNING);
 		else
 			MessageBox(_T("无法打开相机"), _T("提示"), MB_ICONWARNING);
 		return;
@@ -219,7 +220,6 @@ void CdemoDlg::OnBnClickedOpencam()
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
 
 }
-
 void CdemoDlg::DrawImage()
 {
 	CRect rct;
@@ -248,7 +248,6 @@ int __stdcall StreamCB(MV_IMAGE_INFO* pInfo, ULONG_PTR nUserVal)
 	return (pDlg->OnStreamCB(pInfo));
 }
 
-// “开始采集”点击事件
 void CdemoDlg::OnBnClickedStartgrab()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -259,7 +258,7 @@ void CdemoDlg::OnBnClickedStartgrab()
 		MVSetTriggerMode(m_hCam, TriggerMode_Off);
 		Sleep(100);
 	}
-	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this);
+	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this);//采集图像
 	m_bRun = true;
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
@@ -346,4 +345,251 @@ void CdemoDlg::OnBnClickedCancel()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	CDialogEx::OnCancel();
+}
+}
+
+
+
+
+void CdemoDlg::Image_Gray()
+{
+	int w;
+	int h;
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
+	double sum = 0;
+	double count = 0;
+	int i, j;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+	//Kittle 二值分割
+	count = w * h;
+	for (i = 0; i < count; i++)
+	{
+		sum = sum + *p;
+		p++;
+		
+	}
+	
+	sum = sum / count;
+	
+	
+	p = (unsigned char*)m_imageGray.GetBits();
+	for (j = 0; j < h; j++)
+	{
+		for (i = 0; i < w; i++)
+		{
+			if (*p > sum)
+			{
+				*pDst = 255;
+				pDst++;
+				p++;
+			}
+			else {
+				*pDst = 0;
+				pDst++;
+				p++;
+			}
+		}
+	}
+	//滤波
+	/*
+	pDst = (unsigned char*)m_imageGray.GetBits();
+	pDst = pDst + w + 1;
+	for (j = 1; j < h - 1; j++)
+	{
+		for (i = 1; i < w - 1; i++)
+		{
+				//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
+				*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9;
+				pDst++;
+			}
+		}
+	}*/
+	DrawImage2();
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 1; j < w; j++)
+		{
+				*pDst = *p;
+				pDst++;
+				p++;
+		}
+	}
+	Corrode();
+	Corrode();
+	Expand();
+	Expand();
+	
+	Susan();
+
+}
+
+unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 
+	unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7, 
+	unsigned char n8, unsigned char n9)
+{
+	unsigned char arr[9];
+	unsigned char temp;
+	arr[0] = n1;
+	arr[1] = n2;
+	arr[2] = n3;
+	arr[3] = n4;
+	arr[4] = n5;
+	arr[5] = n6;
+	arr[6] = n7;
+	arr[7] = n8;
+	arr[8] = n9;
+	for (int gap = 9 / 2; gap > 0; gap /= 2)//希尔排序
+		for (int i = gap; i < 9; ++i)
+			for (int j = i - gap; j >= 0 && arr[j] > arr[j + gap]; j -= gap)
+			{
+				temp = arr[j];
+				arr[j] = arr[j + gap];
+				arr[j + gap] = temp;
+			}
+	return arr[4];//返回中值
+}
+
+void CdemoDlg::Corrode()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
+	unsigned char* pcur;
+	int i, j, k;
+	int w, h;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	for (i = 2; i < h - 2; i++)
+	{
+		for (j = 2; j < w - 2; j++)
+		{
+			pcur = p + i * w + j;
+
+			if (*(pcur - 1) == 255 || *(pcur + 1) == 255 ||
+				*(pcur - w) == 255 || *(pcur + w) == 255 ||
+				*(pcur - w - 1) == 255 || *(pcur - w + 1) == 255 ||
+				*(pcur + w - 1) == 255 || *(pcur + w + 1) == 255 ||
+				*(pcur - 2) == 255 || *(pcur + 2) == 255 ||
+				*(pcur - 2 * w) == 255 || *(pcur + 2 * w) == 255 || 
+				*(pcur - w - 2) == 255 || *(pcur - w + 2) == 255 ||
+				*(pcur + w -2) == 255 || *(pcur + w + 2) == 255)
+			{
+					*(pDst + i * w + j) = 255;
+			}
+		}
+	}
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++)
+		{
+			*p = *pDst;
+			pDst++;
+			p++;
+		}
+	}
+}
+
+void CdemoDlg::Expand()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
+	unsigned char* pcur;
+	int i, j, k;
+	int w, h;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	for (i = 2; i < h - 2; i++)
+	{
+		for (j = 2; j < w - 2; j++)
+		{
+			pcur = p + i * w + j;
+
+			if (*(pcur - 1) == 0 || *(pcur + 1) == 0 ||
+				*(pcur - w) == 0 || *(pcur + w) == 0 ||
+				*(pcur - w - 1) == 0 || *(pcur - w + 1) == 0 ||
+				*(pcur + w - 1) == 0 || *(pcur + w + 1) == 0 ||
+				*(pcur - 2) == 0 || *(pcur + 2) == 0 ||
+				*(pcur - 2 * w) == 0 || *(pcur + 2 * w) == 0 ||
+				*(pcur - w - 2) == 0 || *(pcur - w + 2) == 0 ||
+				*(pcur + w - 2) == 0 || *(pcur + w + 2) == 0)
+			{
+				*(pDst + i * w + j) = 0;
+			}
+		}
+	}
+	p = (unsigned char*)m_imageGray.GetBits();
+	pDst = (unsigned char*)m_imageDid.GetBits();
+	for (i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++)
+		{
+			*p = *pDst;
+			pDst++;
+			p++;
+		}
+	}
+}
+
+void CdemoDlg::Susan()
+{
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* pOrg = (unsigned char*)m_image.GetBits();
+	int i, j, m, n;
+	int w, h;
+	unsigned char* Susan = NULL; // Susan矩阵
+	int c;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	Susan = (unsigned char*)malloc(static_cast<unsigned long long>(h) * w * sizeof(unsigned char));
+
+
+	// 形成Susan矩阵
+	for (i = 3; i < h - 3; i++) {
+		for (j = 3; j < w - 3; j++) {
+			c = 0;
+			for (m = 0; m < 3; m++) {
+				for ( n = 0; n < 3; n++)
+				{
+					c += exp(-1 * pow((*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) / 180, 2)); // T=130
+					//c += abs(*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) > 200 ? 1 : 0;
+				}
+			}
+			if (c < 6) *(Susan + i * w + j) = 6 - c;
+			else *(Susan + i * w + j) = 0;
+			cout << *(Susan + i * w + j);
+		}
+	}
+
+	//cout << *Susan;
+
+	// 判断角点和边缘
+	for ( i = 0; i < h; i++)
+	{
+		for (j = 0; j < w; j++) {
+			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示蓝色
+			{
+				*(pOrg + i * w * 3 + j * 3) = 255;
+				*(pOrg + i * w * 3 + j * 3 + 1) = 255;
+				*(pOrg + i * w * 3 + j*3 + 2) = 255;
+			}
+			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示绿色
+			{
+				*(pOrg + i * w * 3 + j * 3) = 0;
+				*(pOrg + i * w * 3 + j*3 + 1) = 255;
+				*(pOrg + i * w * 3 + j * 3 + 2) = 0;
+			}
+		}
+	}
 }

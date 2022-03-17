@@ -215,6 +215,7 @@ void CdemoDlg::OnBnClickedOpencam()
 	m_image.CreateByPixelFormat(w, h, m_PixelFormat);
 	m_imageGray.CreateByPixelFormat(w, h, PixelFormat_Mono8);
 	m_imageDid.CreateByPixelFormat(w, h, PixelFormat_Mono8);
+	m_imageLUV.CreateByPixelFormat(w, h, m_PixelFormat);
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
@@ -223,7 +224,7 @@ void CdemoDlg::OnBnClickedOpencam()
 void CdemoDlg::DrawImage()
 {
 	CRect rct;//长方形窗口数据
-	GetDlgItem(pic)->GetClientRect(&rct);
+	GetDlgItem(pic)->GetClientRect(&rct); // rec是ID为pic的显示框
 	//GetClientRect 用于取得指定窗口的客户区域大小
 	//GetDlgItem 假设一个父窗口中有多个子窗口。那么本函数是返回一个子窗口句柄。
 	int dstW = rct.Width();//获得长方体窗口的宽度
@@ -266,9 +267,9 @@ int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 	MVBGRToGray(m_hCam, p, pDst, w, h);
 	if(Recgon == 1)
 	{
-		//digi.Image_
-		(m_image, m_imageDid);
+		//digi.Image_(m_image, m_imageDid);
 		Image_Gray();
+		ImageBRGToLUV();
 	}
 	DrawImage();
 	return 0;
@@ -369,7 +370,8 @@ void CdemoDlg::Image_Gray()
 	{
 		for (i = 0; i < w; i++)
 		{
-			if (*p > sum)
+			//if (*p > sum)
+			if (*p > 100)
 			{
 				*pDst = 255;
 				pDst++;
@@ -524,6 +526,72 @@ void CdemoDlg::Expand()
 			*p = *pDst;
 			pDst++;
 			p++;
+		}
+	}
+}
+
+
+void CdemoDlg::ImageBRGToLUV()
+{
+	unsigned char* p = (unsigned char*)m_image.GetBits();
+	unsigned char* pDst = (unsigned char*)m_imageLUV.GetBits();
+	//int i, j, k;
+	int w, h;
+
+	w = m_imageGray.GetWidth();
+	h = m_imageGray.GetHeight();
+
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++)
+		{
+			unsigned short var_R, var_G, var_B;
+			unsigned short var_U, var_V;
+			unsigned short X, Y, Z;
+			// 把RGB转成XYZ
+			var_R = *(p + i * w * 3) / 255;
+			var_G = *(p + i * w * 3 + 1) / 255;
+			var_B = *(p + i * w * 3 + 2) / 255;
+			if (var_R > 0.04045){
+				var_R = pow((var_R + 0.055) / 1.055, 2.4);
+			} else {
+				var_R = var_R / 12.92;
+			}
+			if (var_G > 0.04045) {
+				var_G = pow((var_G + 0.055) / 1.055, 2.4);
+			}
+			else {
+				var_G = var_G / 12.92;
+			}
+			if (var_B > 0.04045){
+				var_B = pow((var_B + 0.055) / 1.055, 2.4);
+			} else {
+				var_B = var_B / 12.92;
+			}
+			var_R = var_R * 100;
+			var_G = var_G * 100;
+			var_B = var_B * 100;
+			X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+			Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+			Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+
+			// XYZ转成LUV
+			var_U = (4 * X) / (X + (15 * Y) + (3 * Z));
+			var_V = (9 * Y) / (X + (15 * Y) + (3 * Z));
+			Y = Y / 100;
+			if (Y > 0.008856) Y = pow(Y, (double)(1 / 3));
+			else Y = 7.787 * Y + (double)(16 / 116);
+
+			unsigned short ref_X = 95.047, ref_Y = 100.000, ref_Z = 108.883;
+			unsigned short ref_U = (4 * ref_X) / (ref_X + (15 * ref_Y) + (3 * ref_Z));
+			unsigned short ref_V = (9 * ref_Y) / (ref_X + (15 * ref_Y) + (3 * ref_Z));
+
+			unsigned short L = (116 * Y) - 16;
+			unsigned short U = 13 * L * (var_U - ref_U);
+			unsigned short V = 13 * L * (var_V - ref_V);
+
+			*(pDst + i * w * 3) = L;
+			*(pDst + i * w * 3 + 1) = U;
+			*(pDst + i * w * 3 + 2) = V;
 		}
 	}
 }

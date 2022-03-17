@@ -43,6 +43,7 @@ public:
 	//定义图像处理后的对象
 	MVImage m_imageDid;
 	MVImage m_imageGray;
+	MVImage m_imageLUV;
 	//定义像素格式对象
 	MV_PixelFormatEnums m_PixelFormat;
 	//采集标识
@@ -52,6 +53,8 @@ public:
 	//画图
 	void DrawImage();
 	void DrawImage2();
+	// RGB图像转LUV
+	void ImageBRGToLUV();
 	//关闭相机、释放资源
 	void OnClose();
 	//判断是否需要开始识别

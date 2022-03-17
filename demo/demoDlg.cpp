@@ -7,6 +7,9 @@
 #include "demo.h"
 #include "demoDlg.h"
 #include "afxdialogex.h"
+#include <fstream>
+#include <iostream>
+using namespace std;
 
 
 #ifdef _DEBUG
@@ -73,6 +76,8 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_StartGrab, &CdemoDlg::OnBnClickedStartgrab)
 	ON_BN_CLICKED(IDC_CloseCam, &CdemoDlg::OnBnClickedClosecam)
 	ON_STN_CLICKED(pic, &CdemoDlg::OnStnClickedpic)
+	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
+	ON_BN_CLICKED(IDCANCEL, &CdemoDlg::OnBnClickedCancel)
 END_MESSAGE_MAP()
 
 
@@ -121,7 +126,7 @@ BOOL CdemoDlg::OnInitDialog()
 		MessageBox(_T("查找连接计算机的相机失败！"), _T("提示"), MB_ICONWARNING);
 		return TRUE;
 	}
-	GetDlgItem(IDC_OpenCam)->EnableWindow(true);
+	GetDlgItem(IDC_OpenCam)->EnableWindow(false); // 暂时变成不可点击
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -184,6 +189,7 @@ void CdemoDlg::OnBnClickedOk()
 	CDialogEx::OnOK();
 }
 
+// “打开相机”点击事件
 void CdemoDlg::OnBnClickedOpencam()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -191,14 +197,14 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetNumOfCameras(&nCams);
 	if (nCams == 0)
 	{
-		MessageBox(_T(" 没 有 找 到 相 机 , 请确认连接和相机 IP 设 置 "), _T(" 提 示"),MB_ICONWARNING);
+		MessageBox(_T("没有找到相机, 请确认连接和相机IP设置 "), _T("提示"),MB_ICONWARNING);
 			return;
 	}
 	MVSTATUS_CODES r = MVOpenCamByIndex(0, &m_hCam);
 	if (m_hCam == NULL)
 	{
 		if (r == MVST_ACCESS_DENIED)
-			MessageBox(_T(" 无 法 打 开 相 机 ， 可 能 正 被 别 的 软 件 控 制 "), _T(" 提 示 "),MB_ICONWARNING);
+			MessageBox(_T("无法打开相机，可能正被别的软件控制 "), _T("提示 "),MB_ICONWARNING);
 		else
 			MessageBox(_T("无法打开相机"), _T("提示"), MB_ICONWARNING);
 		return;
@@ -213,6 +219,7 @@ void CdemoDlg::OnBnClickedOpencam()
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
 
 }
+
 void CdemoDlg::DrawImage()
 {
 	CRect rct;
@@ -241,6 +248,7 @@ int __stdcall StreamCB(MV_IMAGE_INFO* pInfo, ULONG_PTR nUserVal)
 	return (pDlg->OnStreamCB(pInfo));
 }
 
+// “开始采集”点击事件
 void CdemoDlg::OnBnClickedStartgrab()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -259,6 +267,7 @@ void CdemoDlg::OnBnClickedStartgrab()
 
 }
 
+// “关闭相机”点击事件
 void CdemoDlg::OnBnClickedClosecam()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -284,4 +293,57 @@ void CdemoDlg::OnClose()
 	}
 	MVTerminateLib();
 	CDialog::OnClose();
+}
+
+// “开始识别”点击事件
+void CdemoDlg::OnBnClickedstartrecg()
+{
+	//img = m_image.Load((LPCTSTR)"../photo/photo/1.bmp"); // 这个自带的方法不行
+	int wid = 0, hgt = 0;
+	int len = 0, offset = 0;
+	char temp[4] = { 0 };
+	
+	// 1. 打开图片文件
+	ifstream img("../photo/photo/1.bmp", ifstream::in | ios::binary);
+	if (!img) {
+		cout << "Can not open this image!" << endl;
+		return;
+	}
+	// 2. 计算图片长度
+	img.seekg(2, ios::beg);
+	img.read(temp, 4); // bfSize
+	memcpy(&len, temp, 4);
+	img.seekg(10, ios::beg);
+	img.read(temp, 4); // bfOffBits
+	memcpy(&offset, temp, 4);
+	img.seekg(18, ios::beg);
+	img.read(temp, 4); // biWidth
+	memcpy(&wid, temp, 4);
+	img.seekg(22, ios::beg);
+	img.read(temp, 4); // biHeight
+	memcpy(&hgt, temp, 4);
+	// 3. 读取RGB数值
+	img.seekg(offset, ios::beg);
+	m_image.CreateByPixelFormat(wid, hgt, PixelFormat_BayerRG8);
+	char* p = (char*)m_image.GetBits();
+	img.read(p, wid * hgt * 3); // 这样读出来是上下颠倒的
+	img.close();
+
+	CRect rct;
+	GetDlgItem(pic)->GetClientRect(&rct);
+	int dstW = rct.Width();
+	int dstH = rct.Height();
+	CDC* pDC = GetDlgItem(pic)->GetDC();
+	{
+		pDC->SetStretchBltMode(COLORONCOLOR);
+		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+	}
+	ReleaseDC(pDC);
+}
+
+
+void CdemoDlg::OnBnClickedCancel()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CDialogEx::OnCancel();
 }

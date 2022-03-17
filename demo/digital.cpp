@@ -10,7 +10,6 @@ void Digital::Image_Gray(MVImage m_image, MVImage m_imageDid)
 	int h;
 	unsigned char* p = (unsigned char*)m_image.GetBits();
 	unsigned char* pDst = (unsigned char*)m_image.GetBits();
-	int i, j;
 
 	w = m_image.GetWidth();
 	h = m_image.GetHeight();

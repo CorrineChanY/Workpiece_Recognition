@@ -1,6 +1,5 @@
 ﻿
 // demoDlg.cpp: 实现文件
-//
 
 #include "pch.h"
 #include "framework.h"
@@ -80,6 +79,7 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_STN_CLICKED(pic, &CdemoDlg::OnStnClickedpic)
 	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
 	ON_BN_CLICKED(IDCANCEL, &CdemoDlg::OnBnClickedCancel)
+	ON_STN_CLICKED(picGray, &CdemoDlg::OnStnClickedpicgray)
 END_MESSAGE_MAP()
 
 
@@ -183,8 +183,6 @@ HCURSOR CdemoDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
 void CdemoDlg::OnBnClickedOk()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -198,14 +196,14 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetNumOfCameras(&nCams);
 	if (nCams == 0)
 	{
-		MessageBox(_T(" 没 有 找 到 相 机 , 请确认连接和相机 IP 设 置 "), _T(" 提 示"),MB_ICONWARNING);
+		MessageBox(_T("没有找到相机, 请确认连接和相机IP设置"), _T("提示"),MB_ICONWARNING);
 			return;
 	}
 	MVSTATUS_CODES r = MVOpenCamByIndex(0, &m_hCam);
 	if (m_hCam == NULL)
 	{
 		if (r == MVST_ACCESS_DENIED)
-			MessageBox(_T(" 无 法 打 开 相 机 ， 可 能 正 被 别 的 软 件 控 制 "), _T(" 提 示 "),MB_ICONWARNING);
+			MessageBox(_T("无法打开相机, 可能正被别的软件控制"), _T("提示"),MB_ICONWARNING);
 		else
 			MessageBox(_T("无法打开相机"), _T("提示"), MB_ICONWARNING);
 		return;
@@ -218,8 +216,8 @@ void CdemoDlg::OnBnClickedOpencam()
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
-
 }
+
 void CdemoDlg::DrawImage()
 {
 	CRect rct;
@@ -230,6 +228,20 @@ void CdemoDlg::DrawImage()
 	{
 		pDC->SetStretchBltMode(COLORONCOLOR);
 		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+	}
+	ReleaseDC(pDC);
+}
+
+void CdemoDlg::DrawImageGray()
+{
+	CRect rct;
+	GetDlgItem(picGray)->GetClientRect(&rct);
+	int dstW = rct.Width();
+	int dstH = rct.Height();
+	CDC* pDC = GetDlgItem(picGray)->GetDC();
+	{
+		pDC->SetStretchBltMode(BLACKONWHITE);
+		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
 	}
 	ReleaseDC(pDC);
 }
@@ -294,19 +306,18 @@ void CdemoDlg::OnClose()
 	CDialog::OnClose();
 }
 
-// “开始识别”点击事件
-void CdemoDlg::OnBnClickedstartrecg()
+BOOL CdemoDlg::readBMP()
 {
 	//img = m_image.Load((LPCTSTR)"../photo/photo/1.bmp"); // 这个自带的方法不行
 	int wid = 0, hgt = 0;
 	int len = 0, offset = 0;
 	char temp[4] = { 0 };
-	
+
 	// 1. 打开图片文件
-	ifstream img("../photo/photo/1.bmp", ifstream::in | ios::binary);
+	ifstream img("../photo/photo/3.bmp", ifstream::in | ios::binary); // 默认打开的是1.bmp
 	if (!img) {
 		cout << "Can not open this image!" << endl;
-		return;
+		return false;
 	}
 	// 2. 计算图片长度
 	img.seekg(2, ios::beg);
@@ -323,21 +334,38 @@ void CdemoDlg::OnBnClickedstartrecg()
 	memcpy(&hgt, temp, 4);
 	// 3. 读取RGB数值
 	img.seekg(offset, ios::beg);
-	m_image.CreateByPixelFormat(wid, hgt, PixelFormat_BayerRG8);
+	m_image.CreateByPixelFormat(wid, hgt, PixelFormat_BayerRG8); // RGB
+	m_imageGray.CreateByPixelFormat(wid, hgt, PixelFormat_Mono8); // 灰度
+	m_imageDid.CreateByPixelFormat(wid, hgt, PixelFormat_Mono8); // 灰度
 	char* p = (char*)m_image.GetBits();
 	img.read(p, wid * hgt * 3); // 这样读出来是上下颠倒的
 	img.close();
 
-	CRect rct;
-	GetDlgItem(pic)->GetClientRect(&rct);
-	int dstW = rct.Width();
-	int dstH = rct.Height();
-	CDC* pDC = GetDlgItem(pic)->GetDC();
-	{
-		pDC->SetStretchBltMode(COLORONCOLOR);
-		m_image.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
-	}
-	ReleaseDC(pDC);
+	return true;
+}
+
+void CdemoDlg::getGay()
+{
+	//MVBGRToGray(HANDLE hCam, unsigned char* psrc, unsigned char* pdst, unsigned int width, unsigned int height); // 没连相机，应该不行
+
+}
+
+// “开始识别”点击事件
+void CdemoDlg::OnBnClickedstartrecg()
+{
+	readBMP();
+	DrawImage();
+	Image_Gray();
+	DrawImageGray();
+	Corrode();
+	Corrode();
+	//Expand();
+	//Expand();
+
+	Susan();
+	DrawImage();
+	DrawImageGray();
+
 }
 
 
@@ -346,88 +374,81 @@ void CdemoDlg::OnBnClickedCancel()
 	// TODO: 在此添加控件通知处理程序代码
 	CDialogEx::OnCancel();
 }
-}
-
-
 
 
 void CdemoDlg::Image_Gray()
 {
 	int w;
 	int h;
-	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
+	unsigned char* p = (unsigned char*)m_image.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
 	double sum = 0;
 	double count = 0;
 	int i, j;
 
-	w = m_imageGray.GetWidth();
-	h = m_imageGray.GetHeight();
+	w = m_image.GetWidth();
+	h = m_image.GetHeight();
 	//Kittle 二值分割
-	count = w * h;
+	count = w * h * 3;
 	for (i = 0; i < count; i++)
 	{
 		sum = sum + *p;
 		p++;
-		
 	}
 	
 	sum = sum / count;
 	
-	
-	p = (unsigned char*)m_imageGray.GetBits();
+	p = (unsigned char*)m_image.GetBits();
 	for (j = 0; j < h; j++)
 	{
 		for (i = 0; i < w; i++)
 		{
-			if (*p > sum)
+			if ((*p + *(p + 1) + *(p + 2)) / 3 > sum)
 			{
 				*pDst = 255;
 				pDst++;
+				p++;
+				p++;
 				p++;
 			}
 			else {
 				*pDst = 0;
 				pDst++;
 				p++;
-			}
-		}
-	}
-	//滤波
-	/*
-	pDst = (unsigned char*)m_imageGray.GetBits();
-	pDst = pDst + w + 1;
-	for (j = 1; j < h - 1; j++)
-	{
-		for (i = 1; i < w - 1; i++)
-		{
-				//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
-				*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9;
-				pDst++;
-			}
-		}
-	}*/
-	DrawImage2();
-	p = (unsigned char*)m_imageGray.GetBits();
-	pDst = (unsigned char*)m_imageDid.GetBits();
-	for (i = 0; i < h; i++)
-	{
-		for (j = 1; j < w; j++)
-		{
-				*pDst = *p;
-				pDst++;
 				p++;
+				p++;
+			}
 		}
 	}
-	Corrode();
-	Corrode();
-	Expand();
-	Expand();
-	
-	Susan();
 
+	//滤波
+	//pDst = (unsigned char*)m_imageGray.GetBits();
+	//pDst = pDst + w + 1;
+	//for (j = 1; j < h - 1; j++)
+	//{
+	//	for (i = 1; i < w - 1; i++)
+	//	{
+	//			//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
+	//			*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9; // 均值滤波
+	//			pDst++;
+	//	}
+	//}
+	//DrawImage2();
+	//p = (unsigned char*)m_imageGray.GetBits();
+	//pDst = (unsigned char*)m_imageDid.GetBits();
+	//for (i = 0; i < h; i++)
+	//{
+	//	for (j = 1; j < w; j++)
+	//	{
+	//			*pDst = *p;
+	//			pDst++;
+	//			p++;
+	//	}
+	//
 }
 
+
+// 获取中值
 unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 
 	unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7, 
 	unsigned char n8, unsigned char n9)
@@ -454,12 +475,14 @@ unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char
 	return arr[4];//返回中值
 }
 
+
+// 腐蚀
 void CdemoDlg::Corrode()
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
 	unsigned char* pcur;
-	int i, j, k;
+	int i, j;
 	int w, h;
 
 	w = m_imageGray.GetWidth();
@@ -471,14 +494,14 @@ void CdemoDlg::Corrode()
 		{
 			pcur = p + i * w + j;
 
-			if (*(pcur - 1) == 255 || *(pcur + 1) == 255 ||
-				*(pcur - w) == 255 || *(pcur + w) == 255 ||
-				*(pcur - w - 1) == 255 || *(pcur - w + 1) == 255 ||
-				*(pcur + w - 1) == 255 || *(pcur + w + 1) == 255 ||
-				*(pcur - 2) == 255 || *(pcur + 2) == 255 ||
-				*(pcur - 2 * w) == 255 || *(pcur + 2 * w) == 255 || 
-				*(pcur - w - 2) == 255 || *(pcur - w + 2) == 255 ||
-				*(pcur + w -2) == 255 || *(pcur + w + 2) == 255)
+			if (*(pcur - 1) == 255 || *(pcur + 1) == 255 ||	\
+				*(pcur - w) == 255 || *(pcur + w) == 255 ||	\
+				*(pcur - w - 1) == 255 || *(pcur - w + 1) == 255 ||	\
+				*(pcur + w - 1) == 255 || *(pcur + w + 1) == 255 ||	\
+				*(pcur - 2) == 255 || *(pcur + 2) == 255 ||	\
+				*(pcur - 2 * w) == 255 || *(pcur + 2 * w) == 255 ||	\
+				*(pcur - w - 2) == 255 || *(pcur - w + 2) == 255 ||	\
+				*(pcur + w -2) == 255 || *(pcur + w + 2) == 255)	\
 			{
 					*(pDst + i * w + j) = 255;
 			}
@@ -497,12 +520,14 @@ void CdemoDlg::Corrode()
 	}
 }
 
+
+// 膨胀
 void CdemoDlg::Expand()
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
 	unsigned char* pcur;
-	int i, j, k;
+	int i, j;
 	int w, h;
 
 	w = m_imageGray.GetWidth();
@@ -540,6 +565,7 @@ void CdemoDlg::Expand()
 	}
 }
 
+// Susan算子检测边缘和角点
 void CdemoDlg::Susan()
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
@@ -572,24 +598,27 @@ void CdemoDlg::Susan()
 		}
 	}
 
-	//cout << *Susan;
-
 	// 判断角点和边缘
 	for ( i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++) {
-			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示蓝色
-			{
-				*(pOrg + i * w * 3 + j * 3) = 255;
-				*(pOrg + i * w * 3 + j * 3 + 1) = 255;
-				*(pOrg + i * w * 3 + j*3 + 2) = 255;
-			}
-			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示绿色
+			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示绿色
 			{
 				*(pOrg + i * w * 3 + j * 3) = 0;
+				*(pOrg + i * w * 3 + j * 3 + 1) = 255;
+				*(pOrg + i * w * 3 + j*3 + 2) = 0;
+			}
+			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示白色
+			{
+				*(pOrg + i * w * 3 + j * 3) = 255;
 				*(pOrg + i * w * 3 + j*3 + 1) = 255;
-				*(pOrg + i * w * 3 + j * 3 + 2) = 0;
+				*(pOrg + i * w * 3 + j * 3 + 2) = 255;
 			}
 		}
 	}
+}
+
+void CdemoDlg::OnStnClickedpicgray()
+{
+	// TODO: 在此添加控件通知处理程序代码
 }

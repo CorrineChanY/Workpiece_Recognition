@@ -51,9 +51,13 @@ public:
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
 	//画图
 	void DrawImage();
-	void DrawImage2();
+	void DrawImageGray();
 	//关闭相机、释放资源
 	void OnClose();
+	// 读取bmp图片
+	BOOL readBMP();
+	// 转成灰度图
+	void getGay();
 	//判断是否需要开始识别
 	void Image_Gray();
 	unsigned char Median(unsigned char n1, unsigned char n2, unsigned char n3,
@@ -70,4 +74,5 @@ public:
 	afx_msg void OnStnClickedpic();
 	afx_msg void OnBnClickedstartrecg();
 	afx_msg void OnBnClickedCancel();
+	afx_msg void OnStnClickedpicgray();
 };

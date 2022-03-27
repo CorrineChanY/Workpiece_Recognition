@@ -47,29 +47,29 @@ public:
 	MV_PixelFormatEnums m_PixelFormat;
 	//采集标识
 	bool m_bRun;
-	struct Water {
-		int w;
-		int h;
-		struct Water* next;
-	};
-	struct Pool {
-		int symbel;
-		int num;
-		//struct Water* newwater; //新的water节点
-		//struct Water* endnew; //新water节点的最后一个
-		struct Water* poolwater; //pool里的water
-		struct Water* endwater; //pool里的最后water节点
-		//struct Water* edge; //边界上的water
-		//struct Water* edgecur; //边界延申节点
-		struct Pool* nextpool; //下一个pool
-		struct Pool* endpool; //末尾pool
-	};
+	//struct Water {
+	//	int w;
+	//	int h;
+	//	struct Water* next;
+	//};
+	//struct Pool {
+	//	int symbel;
+	//	int num;
+	//	//struct Water* newwater; //新的water节点
+	//	//struct Water* endnew; //新water节点的最后一个
+	//	struct Water* poolwater; //pool里的water
+	//	struct Water* endwater; //pool里的最后water节点
+	//	//struct Water* edge; //边界上的water
+	//	//struct Water* edgecur; //边界延申节点
+	//	struct Pool* nextpool; //下一个pool
+	//	struct Pool* endpool; //末尾pool
+	//};
 	struct Pool1 {
-		int symbel;
-		int num;
-		int** water;
-		struct Pool1* next;
-		struct Pool1* end;
+		int symbel;//工件序号
+		int num;//工件像素数
+		int** water;//工件图片
+		struct Pool1* next;//下一个工件节点
+		struct Pool1* end;//仅index中保存链表队尾
 	};
 	//通过回调函数获取图像数据信息
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
@@ -90,13 +90,15 @@ public:
 	void Corrode();
 	void Expand();
 	void Susan();
-	void Watershed();
-	int Waterinpool(struct Pool pool, int h, int w);
+	void Watershed(struct Pool1* index);
+	/*int Waterinpool(struct Pool pool, int h, int w);
 	void replacepool(struct Pool* pool);
-	void Displayedge(struct Pool* fpool);
+	void Displayedge(struct Pool* fpool);*/
 	void grow(int h, int w, struct Pool1 index, int h0, int w0, int th);
-	void growagain(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool);
+	/*void growagain(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool);*/
 	void growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh);
+	void Dispool(struct Pool1* index);
+	void freepool(struct Pool1* index);
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();

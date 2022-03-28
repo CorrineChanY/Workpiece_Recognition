@@ -9,7 +9,6 @@
 #define Sth 10000
 using namespace std;
 
-
 // CdemoDlg 对话框
 class CdemoDlg : public CDialogEx
 {
@@ -52,7 +51,7 @@ public:
 	bool m_bRun;
 	enum Piece {
 		Coin = 1, Block, Nut, Bolt, Screw, Wrench
-	};//硬币，积木，螺母，螺栓，螺丝，扳手
+	};  //硬币，   积木， 螺母，螺栓，螺丝，  扳手
 	struct Pool1 {
 		int symbel;//工件序号
 		int num;//工件像素数

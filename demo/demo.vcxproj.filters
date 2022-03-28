@@ -36,6 +36,9 @@
     <ClInclude Include="digital.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="disNums.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="demo.cpp">

@@ -7,10 +7,12 @@
 #include "demoDlg.h"
 #include "afxdialogex.h"
 #include "digital.h"
-#include<malloc.h>
-#include<iostream>
+#include "disNums.h"
+#include <malloc.h>
+#include <iostream>
 #include <fstream>
-#include<vector>
+#include <vector>
+#include <string> 
 //#define th 10
 #define th1 20
 using namespace std;
@@ -317,7 +319,7 @@ BOOL CdemoDlg::readBMP()
 	char temp[4] = { 0 };
 
 	// 1. 打开图片文件
-	ifstream img("../photo/photo/3.bmp", ifstream::in | ios::binary); // 默认打开的是1.bmp
+	ifstream img("../photo/photo/10.bmp", ifstream::in | ios::binary); // 默认打开的是1.bmp
 	if (!img) {
 		cout << "Can not open this image!" << endl;
 		return false;
@@ -361,15 +363,20 @@ void CdemoDlg::OnBnClickedstartrecg()
 	index = (struct Pool1*)malloc(sizeof(struct Pool1));
 	index->end = index;
 	index->next = NULL;
+
 	readBMP();
 	DrawImage();
 	Image_Gray();
 	DrawImageGray();
+
 	Watershed(index);//获取单一工件图链表
 	simplar_susan(index);//获取工件边缘
+
 	Dispool(index);//在原图中标记工件
 	Disedge(index);//在原图上标记边界
+
 	JudgePiece(index);//判断工件类型
+
 	freepool(index);//释放链表所占内存
 	free(index);
 	index = NULL;
@@ -405,51 +412,8 @@ void CdemoDlg::Image_Gray()
 
 	w = m_image.GetWidth();
 	h = m_image.GetHeight();
-
-	//Kittle 二值分割
-	/*count = w * h * 3;
-	for (i = 0; i < count; i++)
-	{
-		sum = sum + *p;
-		p++;
-	}
-	sum = sum / count;
-
-	count = 0;
-	p = (unsigned char*)m_image.GetBits();
-	for (i = 0; i < count; i++)
-	{
-		if (*p < sum)
-		{
-			sum1 = sum1 + *p;
-			count++;
-		}
-		p++;
-	}*/
-	
 	
 	p = (unsigned char*)m_image.GetBits();
-	/*for (j = 0; j < h; j++)
-	{
-		for (i = 0; i < w; i++)
-		{
-			if ((*p + *(p + 1) + *(p + 2)) / 3 > sum)
-			{
-				*pDst = 255;
-				pDst++;
-				p++;
-				p++;
-				p++;
-			}
-			else {
-				*pDst = 0;
-				pDst++;
-				p++;
-				p++;
-				p++;
-			}
-		}
-	}*/
 
 	for (i = 0; i < h; i++)
 	{
@@ -1293,263 +1257,6 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 	}
 }
 
-//用于最后一次增长水平面获得分水坝
-//void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh)
-//{
-//	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-//	struct Pool1* pcur = NULL;
-//	int h, w, i, j;
-//	int state;
-//	int num, bar;
-//	int backnum;
-//
-//	pool->water[h1][w1] = 2;
-//	vector<int>obj;
-//	obj.push_back(h1);
-//	obj.push_back(w1);
-//	pool->point.insert(pool->point.begin(), h1);
-//	pool->point.push_back(w1);
-//	while (1)
-//	{
-//		w = obj.back();
-//		obj.pop_back();
-//		h = obj.back();
-//		obj.pop_back();
-//		num = 0;
-//		bar = 0;
-//		backnum = 0;
-//		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//
-//		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//
-//		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (bar == 1)
-//		{
-//			for (i = 0; i < num; i++)
-//			{
-//				obj.pop_back();
-//				obj.pop_back();
-//				pool->point.pop_back();
-//				pool->point.pop_back();
-//			}
-//		}
-//		if (obj.empty())
-//			break;
-//	}
-//}
 
 void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
@@ -1916,6 +1623,8 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 	pool->h0 /= pool->num;
 	pool->w0 /= pool->num;
 }
+
+
 void CdemoDlg::simplar_susan(struct Pool1* index)
 {
 	struct Pool1* pcur = NULL;
@@ -1989,6 +1698,7 @@ void CdemoDlg::Disedge(struct Pool1* index)
 			h0 = pcur->edge[po];
 			po++;
 			w0 = pcur->edge[po];
+			// 得到xmax、xmin、ymin、ymax
 			if (w0 < wmin)wmin = w0;
 			if (w0 > wmax)wmax = w0;
 			if (h0 < hmin)hmin = h0;
@@ -2032,6 +1742,47 @@ void CdemoDlg::Disedge(struct Pool1* index)
 				*(p + (pcur->h0 + i) * w * 3 + (pcur->w0 + j) * 3 + 2) = 0;
 			}
 		}
+		int x0 = (hmin - 30) > 0 ? hmin - 30 : 0;
+		int y0 = (wmin + 15) < w ? wmin : w-16;
+		// 标数字
+		if (pcur->symbel < 10) {
+			for ( i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[pcur->symbel][i][j] == 1) {
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 1) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 2) = 255;
+					}
+				}
+			}
+		}
+		else if(pcur->symbel < 20)
+		{
+			int shiwei = 1;
+			int gewei = pcur->symbel - 10;
+			for (i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[shiwei][i][j] == 1) {
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + j) * 3) = 255;
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + j) * 3 + 1) = 255;
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + j) * 3 + 2) = 255;
+					}
+				}
+			}
+			for (i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[gewei][i][j] == 1) {
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + 20 + j) * 3) = 255;
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + 20 + j) * 3 + 1) = 255;
+						*(p + (hmin - 30 + i) * w * 3 + (wmin + 20 + j) * 3 + 2) = 255;
+					}
+				}
+			}
+		}
+
 		pcur = pcur->next;
 	}
 }
@@ -2042,6 +1793,9 @@ void CdemoDlg::JudgePiece(struct Pool1*index)
 	int i, j;
 	double th, distence, dmax, dmin;
 	int state;
+	wchar_t classes[6][10] = {
+		L"硬币", L"积木", L"螺母", L"螺栓", L"螺钉", L"扳手"
+	};
 
 	pcur = index->next;
 	while (1)
@@ -2075,7 +1829,6 @@ void CdemoDlg::JudgePiece(struct Pool1*index)
 			}
 			else {//几何中心在工件内
 				state = 0;
-				//th = sqrt((pcur->edge[0] - pcur->h0) * (pcur->edge[0] - pcur->h0) + (pcur->edge[1] - pcur->w0) * (pcur->edge[1] - pcur->w0));
 				th = 0;
 				for (i = 0; i < pcur->edgenum; i++)
 				{
@@ -2097,6 +1850,12 @@ void CdemoDlg::JudgePiece(struct Pool1*index)
 				}
 			}
 		}
+		GetDlgItem(1049 + (pcur->symbel - 1) * 3)->SetWindowTextW(classes[pcur->type-1]);
+		string str = to_string(pcur->num);
+		CString cstr;
+		cstr = str.c_str();
+		GetDlgItem(1050 + (pcur->symbel - 1) * 3)->SetWindowTextW(cstr);
+
 		pcur = pcur->next;
 	}
 }

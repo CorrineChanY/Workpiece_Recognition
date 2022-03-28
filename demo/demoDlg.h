@@ -5,6 +5,9 @@
 #pragma once
 #include "MVGigE.h"
 #include "MVImage.h"
+#include<vector>
+#define Sth 10000
+using namespace std;
 
 
 // CdemoDlg 对话框
@@ -47,29 +50,23 @@ public:
 	MV_PixelFormatEnums m_PixelFormat;
 	//采集标识
 	bool m_bRun;
-	//struct Water {
-	//	int w;
-	//	int h;
-	//	struct Water* next;
-	//};
-	//struct Pool {
-	//	int symbel;
-	//	int num;
-	//	//struct Water* newwater; //新的water节点
-	//	//struct Water* endnew; //新water节点的最后一个
-	//	struct Water* poolwater; //pool里的water
-	//	struct Water* endwater; //pool里的最后water节点
-	//	//struct Water* edge; //边界上的water
-	//	//struct Water* edgecur; //边界延申节点
-	//	struct Pool* nextpool; //下一个pool
-	//	struct Pool* endpool; //末尾pool
-	//};
+	enum Piece {
+		Coin = 1, Block, Nut, Bolt, Screw, Wrench
+	};//硬币，积木，螺母，螺栓，螺丝，扳手
 	struct Pool1 {
 		int symbel;//工件序号
 		int num;//工件像素数
 		int** water;//工件图片
 		struct Pool1* next;//下一个工件节点
 		struct Pool1* end;//仅index中保存链表队尾
+		/*vector<int>point;
+		vector<int>edge;*/
+		int* point;//记录所有点
+		int* edge;//记录边界
+		int edgenum;//记录边界点数
+		int h0;//记录几何中心纵坐标
+		int w0;//记录几何中心横坐标
+		enum Piece type;//记录工件类型
 	};
 	//通过回调函数获取图像数据信息
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
@@ -97,8 +94,12 @@ public:
 	void grow(int h, int w, struct Pool1 index, int h0, int w0, int th);
 	/*void growagain(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool);*/
 	void growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh);
+	void growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh);
 	void Dispool(struct Pool1* index);
 	void freepool(struct Pool1* index);
+	void simplar_susan(struct Pool1* index);
+	void Disedge(struct Pool1* index);
+	void JudgePiece(struct Pool1* index);
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();

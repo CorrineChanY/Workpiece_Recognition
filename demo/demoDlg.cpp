@@ -7,10 +7,12 @@
 #include "demoDlg.h"
 #include "afxdialogex.h"
 #include "digital.h"
+#include "disNums.h"
 #include<malloc.h>
 #include<iostream>
 #include <fstream>
 #include<vector>
+#include <string> 
 //#define th 10
 #define th1 20
 using namespace std;
@@ -83,6 +85,7 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
 	ON_BN_CLICKED(IDCANCEL, &CdemoDlg::OnBnClickedCancel)
 	ON_STN_CLICKED(picGray, &CdemoDlg::OnStnClickedpicgray)
+	ON_BN_CLICKED(endRecg, &CdemoDlg::OnBnClickedendrecg)
 END_MESSAGE_MAP()
 
 
@@ -216,6 +219,8 @@ void CdemoDlg::OnBnClickedOpencam()
 	MVGetHeight(m_hCam, &h);
 	MVGetPixelFormat(m_hCam, &m_PixelFormat);
 	m_image.CreateByPixelFormat(w, h, m_PixelFormat);
+	m_imageGray.CreateByPixelFormat(w, h, PixelFormat_Mono8); // 灰度
+	m_imageDid.CreateByPixelFormat(w, h, PixelFormat_Mono8); // 灰度
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
@@ -253,6 +258,10 @@ int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 {
 
 	MVInfo2Image(m_hCam, pInfo, &m_image);
+	if (Recgon == 1)
+	{
+		Change_Image();
+	}
 	DrawImage();
 	return 0;
 }
@@ -267,6 +276,7 @@ void CdemoDlg::OnBnClickedStartgrab()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	TriggerModeEnums enumMode;
+	Recgon = 0;
 	MVGetTriggerMode(m_hCam, &enumMode);
 	if (enumMode != TriggerMode_Off)
 	{
@@ -356,32 +366,43 @@ void CdemoDlg::getGay()
 // “开始识别”点击事件
 void CdemoDlg::OnBnClickedstartrecg()
 {
-	struct Pool1* index = NULL;//单一工件图链表起始节点，读取工件图从index->next开始读起
+	//vector<struct Pool1> index = NULL;//单一工件图链表起始节点，读取工件图从index->next开始读起
 
-	index = (struct Pool1*)malloc(sizeof(struct Pool1));
-	index->end = index;
-	index->next = NULL;
-	readBMP();
-	DrawImage();
+	//vector<struct Pool1> index;
+	//readBMP();
+	//DrawImage();
+	//Image_Gray();
+	//DrawImageGray();
+	//Watershed(index);//获取单一工件图链表
+	//simplar_susan(index);//获取工件边缘
+	////Dispool(index);//在原图中标记工件
+	//Disedge(index);//在原图上标记边界
+	//JudgePiece(index);//判断工件类型
+	//freepool(index);
+	////Corrode();
+	////Corrode();
+	////Expand();
+	////Expand();
+
+	////Susan();
+
+	//DrawImage();
+	//DrawImageGray();
+	Recgon = 1;
+}
+
+void CdemoDlg::Change_Image()
+{
+	vector<struct Pool1> index;
+
 	Image_Gray();
 	DrawImageGray();
 	Watershed(index);//获取单一工件图链表
 	simplar_susan(index);//获取工件边缘
-	Dispool(index);//在原图中标记工件
+	//Dispool(index);//在原图中标记工件
 	Disedge(index);//在原图上标记边界
 	JudgePiece(index);//判断工件类型
-	freepool(index);//释放链表所占内存
-	free(index);
-	index = NULL;
-	//Corrode();
-	//Corrode();
-	//Expand();
-	//Expand();
-
-	//Susan();
-
-	DrawImage();
-	DrawImageGray();
+	freepool(index);
 }
 
 
@@ -405,51 +426,7 @@ void CdemoDlg::Image_Gray()
 
 	w = m_image.GetWidth();
 	h = m_image.GetHeight();
-
-	//Kittle 二值分割
-	/*count = w * h * 3;
-	for (i = 0; i < count; i++)
-	{
-		sum = sum + *p;
-		p++;
-	}
-	sum = sum / count;
-
-	count = 0;
 	p = (unsigned char*)m_image.GetBits();
-	for (i = 0; i < count; i++)
-	{
-		if (*p < sum)
-		{
-			sum1 = sum1 + *p;
-			count++;
-		}
-		p++;
-	}*/
-	
-	
-	p = (unsigned char*)m_image.GetBits();
-	/*for (j = 0; j < h; j++)
-	{
-		for (i = 0; i < w; i++)
-		{
-			if ((*p + *(p + 1) + *(p + 2)) / 3 > sum)
-			{
-				*pDst = 255;
-				pDst++;
-				p++;
-				p++;
-				p++;
-			}
-			else {
-				*pDst = 0;
-				pDst++;
-				p++;
-				p++;
-				p++;
-			}
-		}
-	}*/
 
 	for (i = 0; i < h; i++)
 	{
@@ -471,31 +448,6 @@ void CdemoDlg::Image_Gray()
 		*(pDst + i * w) = 255;
 		*(pDst + i * w + w - 1) = 255;
 	}
-
-	//滤波
-	//pDst = (unsigned char*)m_imageGray.GetBits();
-	//pDst = pDst + w + 1;
-	//for (j = 1; j < h - 1; j++)
-	//{
-	//	for (i = 1; i < w - 1; i++)
-	//	{
-	//			//*pDst = Median(*pDst, *(pDst-3), *(pDst+3),*(pDst-3*w), *(pDst+3*w), *(pDst-3*w-3),*(pDst-3*w+3), *(pDst+3*w-3), *(pDst+3*w+3));
-	//			*pDst = (*pDst + *(pDst - 1) + *(pDst + 1) + *(pDst - w) + *(pDst + w) + *(pDst - w - 1) + *(pDst - w + 1) + *(pDst + w - 1) + *(pDst + w + 1)) / 9; // 均值滤波
-	//			pDst++;
-	//	}
-	//}
-	//DrawImage2();
-	//p = (unsigned char*)m_imageGray.GetBits();
-	//pDst = (unsigned char*)m_imageDid.GetBits();
-	//for (i = 0; i < h; i++)
-	//{
-	//	for (j = 1; j < w; j++)
-	//	{
-	//			*pDst = *p;
-	//			pDst++;
-	//			p++;
-	//	}
-	//
 }
 
 
@@ -674,7 +626,7 @@ void CdemoDlg::OnStnClickedpicgray()
 }
 
 //Watershed基于区域生长的分水岭算法
-void CdemoDlg::Watershed(struct Pool1* index)
+void CdemoDlg::Watershed(vector<struct Pool1> &index)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
@@ -682,8 +634,8 @@ void CdemoDlg::Watershed(struct Pool1* index)
 	int i, j, a, b, wh, count, count1;
 	double sum = 0;
 	double sum1 = 0;
-	//struct Pool1 index;//各工件图片队列的首节点，自身不保存工件信息
-	struct Pool1* pool = NULL;
+	//vector<struct Pool1> index;//各工件图片队列的首节点，自身不保存工件信息
+	struct Pool1 pool;
 	struct Pool1* pcur = NULL;
 	struct Pool1* belong = NULL;
 	int state = 0;
@@ -691,8 +643,6 @@ void CdemoDlg::Watershed(struct Pool1* index)
 	int found = 0;
 	int color;
 
-	index->end = index;
-	index->next = NULL;
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
@@ -730,40 +680,19 @@ void CdemoDlg::Watershed(struct Pool1* index)
 				if (*(p + i * w + j) < 5)
 				{
 					state = 0;
-					pcur = index->next;
-					while (1)
+					for (auto it = index.begin(); it != index.end(); ++it)
 					{
-						if (pcur == NULL)
-							break;
-						if (pcur->water[i][j] == 1)//判断该种子是否已经生长
+						if ((*it).water[i][j] == 1)
 						{
 							state++;
 						}
-						pcur = pcur->next;
 					}
 					if (state == 0)//未生长
 					{
-						pool = (struct Pool1*)malloc(sizeof(struct Pool1));
-						pool->water = (int**)malloc(h * sizeof(int*));
-						for (a = 0; a < h; a++)
-						{
-							pool->water[a] = (int*)malloc(w * sizeof(int));
-						}
-
-						for (a = 0; a < h; a++)
-						{
-							for (b = 0; b < w; b++)
-							{
-								pool->water[a][b] = 0;
-							}
-						}
-						pool->num = 0;
-						pool->symbel = typenum;
-						pool->next = NULL;
+						pool.symbel = typenum;
 						typenum++;
-						index->end->next = pool;
-						index->end = pool;
-						grow(i, j, *index, h, w, 11);
+						index.push_back(pool);
+						grow(i, j, index, h, w, 7);
 						found = 1;
 					}
 				}
@@ -773,21 +702,18 @@ void CdemoDlg::Watershed(struct Pool1* index)
 			break;
 	}
 
-	for (a = 12; a < 15; a++)
+	for (a = 8; a < 13; a++)
 	{
-		pcur = index->next;
-		while (1)
+		for(auto it = index.begin(); it != index.end(); it++)
 		{
-			if (pcur == NULL)
-				break;
 			state = 0;
 			for (i = 0; i < h; i++)
 			{
 				for (j = 0; j < w; j++)
 				{
-					if (pcur->water[i][j] > 0)
+					if ((*it).water[i][j] > 0)
 					{
-						growagain1(i, j, *index, h, w, pcur, a, a);
+						growagain1(i, j, index, h, w, &(*(it)), a, a);
 						state = 1;
 						break;
 					}
@@ -795,25 +721,21 @@ void CdemoDlg::Watershed(struct Pool1* index)
 				if (state == 1)
 					break;
 			}
-			pcur = pcur->next;
 		}
 	}
 
-	pcur = index->next;
-	while (1)
+	for (auto it = index.begin(); it != index.end(); it++)
 	{
-		if (pcur == NULL)
-			break;
 		state = 0;
 		for (i = 0; i < h; i++)
 		{
 			for (j = 0; j < w; j++)
 			{
-				if (pcur->water[i][j] >= 1)
+				if ((*it).water[i][j] >= 1)
 				{
-					if (pcur->water[i + 2][j] >= 1)
+					if ((*it).water[i + 2][j] >= 1)
 					{
-						growdone(i + 2, j, *index, h, w, pcur, a, a);
+						growdone(i + 2, j, index, h, w, &(*(it)), a, a);
 						state = 1;
 						break;
 					}
@@ -822,32 +744,39 @@ void CdemoDlg::Watershed(struct Pool1* index)
 			if (state == 1)
 				break;
 		}
-		pcur = pcur->next;
 	}
 	
 }
 
 //显示水池
-void CdemoDlg::Dispool(struct Pool1* index)
+void CdemoDlg::Dispool(vector<struct Pool1> index)
 {
 	unsigned char* p = (unsigned char*)m_image.GetBits();
-	int h, w, i, j;
+	int h, w, i, j, a;
 	int color = 60;
 	struct Pool1* pcur = NULL;
+	int poolnum = 0;
+	struct Pool1* poolall = NULL;
+
+	poolnum = index.size();
+	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+	i = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
-	pcur = index->next;
-	while (1)
+	for (a = 0; a < poolnum; a++)
 	{
-		if (pcur == NULL)
-			break;
 		for (i = 0; i < h; i++)
 		{
 			for (j = 0; j < w; j++)
 			{
-				if (pcur->water[i][j] >= 1)
+				if (poolall[a].water[i][j] >= 1)
 				{
 					*(p + i * w * 3 + j * 3) = 0;
 					*(p + i * w * 3 + j * 3 + 1) = color;
@@ -856,45 +785,53 @@ void CdemoDlg::Dispool(struct Pool1* index)
 			}
 		}
 		color += 15;
-		pcur = pcur->next;
 	}
+	free(poolall);
 }
 
 //删库跑路
-void CdemoDlg::freepool(struct Pool1* index)
+void CdemoDlg::freepool(vector<struct Pool1> index)
 {
-	struct Pool1* pcur = NULL;
-	struct Pool1* belong = NULL;
-	int h, i;
-
+	int i, h;
+	int** pool;
 	h = m_imageGray.GetHeight();
-
-	pcur = index->next;
-	while (1)
+	for (auto it = index.begin(); it != index.end(); it++)
 	{
-		if (pcur == NULL)
-			break;
-		belong = pcur->next;
+		pool = (*it).water;
 		for (i = 0; i < h; i++)
 		{
-			free(pcur->water[i]);
+			free(pool[i]);
 		}
-		free(pcur->water);
-		free(pcur->edge);
-		free(pcur->point);
-		free(pcur);
-		pcur = belong;
+		free(pool);
+		free((*it).edge);
+		free((*it).point);
 	}
 }
 
 //一次增长获得水洼
-void CdemoDlg::grow(int h1, int w1, struct Pool1 index, int h0, int w0, int th)
+void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, int th)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-	int h, w;
+	struct Pool1 pool;
+	int h, w, a, b;
+	int num = index.size() - 1;
 
-	index.end->water[h1][w1] = 1;
-	index.end->num++;
+	pool.symbel = index[num].symbel;
+	pool.water = (int**)malloc(h0 * sizeof(int*));
+	for (a = 0; a < h0; a++)
+	{
+		pool.water[a] = (int*)malloc(w0 * sizeof(int));
+	}
+
+	for (a = 0; a < h0; a++)
+	{
+		for (b = 0; b < w0; b++)
+		{
+			pool.water[a][b] = 0;
+		}
+	}
+	pool.num = 0;
+	auto it = index.end() - 1;
 	vector<int>obj;
 	obj.push_back(h1);
 	obj.push_back(w1);
@@ -904,79 +841,95 @@ void CdemoDlg::grow(int h1, int w1, struct Pool1 index, int h0, int w0, int th)
 		obj.pop_back();
 		h = obj.back();
 		obj.pop_back();
-		if (index.end->water[h - 1][w - 1] == 0 && *(p + (h - 1) * w0 + (w - 1)) < th)
+		if (pool.water[h - 1][w - 1] == 0 && *(p + (h - 1) * w0 + (w - 1)) < th)
 		{
-			index.end->water[h - 1][w - 1] = 1;
-			index.end->num++;
+			pool.water[h - 1][w - 1] = 1;
+			pool.num++;
 			obj.push_back(h - 1);
 			obj.push_back(w - 1);
 		}
-		if (index.end->water[h - 1][w] == 0 && *(p + (h - 1) * w0 + (w)) < th)
+		if (pool.water[h - 1][w] == 0 && *(p + (h - 1) * w0 + (w)) < th)
 		{
-			index.end->water[h - 1][w] = 1;
-			index.end->num++;
+			pool.water[h - 1][w] = 1;
+			pool.num++;
 			obj.push_back(h - 1);
 			obj.push_back(w);
 		}
-		if (index.end->water[h - 1][w + 1] == 0 && *(p + (h - 1) * w0 + (w + 1)) < th)
+		if (pool.water[h - 1][w + 1] == 0 && *(p + (h - 1) * w0 + (w + 1)) < th)
 		{
-			index.end->water[h - 1][w + 1] = 1;
-			index.end->num++;
+			pool.water[h - 1][w + 1] = 1;
+			pool.num++;
 			obj.push_back(h - 1);
 			obj.push_back(w + 1);
 		}
 
-		if (index.end->water[h][w - 1] == 0 && *(p + (h)*w0 + (w - 1)) < th)
+		if (pool.water[h][w - 1] == 0 && *(p + (h)*w0 + (w - 1)) < th)
 		{
-			index.end->water[h][w - 1] = 1;
-			index.end->num++;
+			pool.water[h][w - 1] = 1;
+			pool.num++;
 			obj.push_back(h);
 			obj.push_back(w - 1);
 		}
-		if (index.end->water[h][w + 1] == 0 && *(p + (h)*w0 + (w + 1)) < th)
+		if (pool.water[h][w + 1] == 0 && *(p + (h)*w0 + (w + 1)) < th)
 		{
-			index.end->water[h][w + 1] = 1;
-			index.end->num++;
+			pool.water[h][w + 1] = 1;
+			pool.num++;
 			obj.push_back(h);
 			obj.push_back(w + 1);
 		}
 
-		if (index.end->water[h + 1][w - 1] == 0 && *(p + (h + 1) * w0 + (w - 1)) < th)
+		if (pool.water[h + 1][w - 1] == 0 && *(p + (h + 1) * w0 + (w - 1)) < th)
 		{
-			index.end->water[h + 1][w - 1] = 1;
-			index.end->num++;
+			pool.water[h + 1][w - 1] = 1;
+			pool.num++;
 			obj.push_back(h + 1);
 			obj.push_back(w - 1);
 		}
-		if (index.end->water[h + 1][w] == 0 && *(p + (h + 1) * w0 + (w)) < th)
+		if (pool.water[h + 1][w] == 0 && *(p + (h + 1) * w0 + (w)) < th)
 		{
-			index.end->water[h + 1][w] = 1;
-			index.end->num++;
+			pool.water[h + 1][w] = 1;
+			pool.num++;
 			obj.push_back(h + 1);
 			obj.push_back(w);
 		}
-		if (index.end->water[h + 1][w + 1] == 0 && *(p + (h + 1) * w0 + (w + 1)) < th)
+		if (pool.water[h + 1][w + 1] == 0 && *(p + (h + 1) * w0 + (w + 1)) < th)
 		{
-			index.end->water[h + 1][w + 1] = 1;
-			index.end->num++;
+			pool.water[h + 1][w + 1] = 1;
+			pool.num++;
 			obj.push_back(h + 1);
 			obj.push_back(w + 1);
 		}
 		if (obj.empty())
 			break;
 	}
-	
+	index.pop_back();
+	index.push_back(pool);
 }
 
 //用于循环增长水平面稳定获得水池
-void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh)
+void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	struct Pool1* pcur = NULL;
 	int h, w, i ,j;
 	int state;
-	int num, bar;
-
+	int num, bar, poolnum;
+	auto it = index.begin();
+	struct Pool1* poolall = NULL;
+	poolnum = index.size() - 1;
+	i = 0;
+	poolall = (struct Pool1*)malloc((index.size() - 1) * sizeof(struct Pool1));
+	for (it = index.begin(); (*it).symbel != pool->symbel; it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
+	it++;
+	for (; it != index.end(); it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
 	pool->water[h1][w1] = wh;
 	pool->num = 1;
 	vector<int>obj;
@@ -992,28 +945,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		bar = 0;
 		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1028,28 +967,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		}
 		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1064,28 +989,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		}
 		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1101,28 +1012,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 
 		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1137,28 +1034,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		}
 		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1174,28 +1057,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 
 		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1210,28 +1079,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		}
 		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1246,28 +1101,14 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		}
 		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1291,274 +1132,33 @@ void CdemoDlg::growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, st
 		if (obj.empty())
 			break;
 	}
+	free(poolall);
 }
 
-//用于最后一次增长水平面获得分水坝
-//void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh)
-//{
-//	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-//	struct Pool1* pcur = NULL;
-//	int h, w, i, j;
-//	int state;
-//	int num, bar;
-//	int backnum;
-//
-//	pool->water[h1][w1] = 2;
-//	vector<int>obj;
-//	obj.push_back(h1);
-//	obj.push_back(w1);
-//	pool->point.insert(pool->point.begin(), h1);
-//	pool->point.push_back(w1);
-//	while (1)
-//	{
-//		w = obj.back();
-//		obj.pop_back();
-//		h = obj.back();
-//		obj.pop_back();
-//		num = 0;
-//		bar = 0;
-//		backnum = 0;
-//		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h - 1][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h - 1][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h - 1);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h - 1);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//
-//		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//
-//		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w - 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w - 1] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w - 1);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w - 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
-//		{
-//			pcur = index.next;
-//			state = 1;
-//			while (1) {
-//				if (pcur == NULL)
-//					break;
-//				if (pcur->water[h + 1][w + 1] >= 1)
-//				{
-//					state = 0;
-//					break;
-//				}
-//				pcur = pcur->next;
-//			}
-//			if (state == 1) {
-//				num++;
-//				pool->water[h + 1][w + 1] = wh;
-//				pool->num++;
-//				obj.push_back(h + 1);
-//				obj.push_back(w + 1);
-//				pool->point.push_back(h + 1);
-//				pool->point.push_back(w + 1);
-//			}
-//			else {
-//				bar = 1;
-//			}
-//		}
-//		if (bar == 1)
-//		{
-//			for (i = 0; i < num; i++)
-//			{
-//				obj.pop_back();
-//				obj.pop_back();
-//				pool->point.pop_back();
-//				pool->point.pop_back();
-//			}
-//		}
-//		if (obj.empty())
-//			break;
-//	}
-//}
-
-void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh)
+void CdemoDlg::growdone(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	struct Pool1* pcur = NULL;
 	int h, w, i, j;
 	int state;
 	int num, bar;
-	int backnum;
+	int backnum, poolnum;
+	auto it = index.begin();
+	struct Pool1* poolall = NULL;
+	poolnum = index.size() - 1;
+	i = 0;
+	poolall = (struct Pool1*)malloc((index.size() - 1) * sizeof(struct Pool1));
+	for (it = index.begin(); (*it).symbel != pool->symbel; it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
+	it++;
+	for (; it != index.end(); it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
 
 	pool->water[h1][w1] = wh;
 	vector<int>obj;
@@ -1581,28 +1181,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		backnum = 0;
 		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1621,28 +1207,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		}
 		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1661,28 +1233,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		}
 		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h - 1][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1702,28 +1260,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 
 		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1742,28 +1286,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		}
 		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1783,28 +1313,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 
 		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w - 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1823,28 +1339,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		}
 		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1863,28 +1365,14 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		}
 		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
 		{
-			pcur = index.next;
 			state = 1;
-			while (1) {
-				if (pcur == pool)
-					break;
-				if (pcur->water[h - 1][w - 1] >= 1)
+			for (i = 0; i < poolnum; i++)
+			{
+				if (poolall[i].water[h - 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
 				}
-				pcur = pcur->next;
-			}
-			pcur = pcur->next;
-			while (1) {
-				if (pcur == NULL)
-					break;
-				if (pcur->water[h + 1][w + 1] >= 1)
-				{
-					state = 0;
-					break;
-				}
-				pcur = pcur->next;
 			}
 			if (state == 1) {
 				num++;
@@ -1913,82 +1401,101 @@ void CdemoDlg::growdone(int h1, int w1, struct Pool1 index, int h0, int w0, stru
 		if (obj.empty())
 			break;
 	}
+	free(poolall);
+	pool->point[100];
+	index;
 	pool->h0 /= pool->num;
 	pool->w0 /= pool->num;
 }
-void CdemoDlg::simplar_susan(struct Pool1* index)
+void CdemoDlg::simplar_susan(vector<struct Pool1> &index)
 {
 	struct Pool1* pcur = NULL;
-	struct Pool1* pool = NULL;
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-	int i, j, h, w, po;
+	int i, j, h, w, po, a;
 	int h0, w0;
 	int m = 3, n = 3;
 	int susan;
-	int pointnum = 0;
+	int pointnum = 0, poolnum = 0;
+	struct Pool1* poolall = NULL;
 
-	pool = index->next;
+	poolnum = index.size();
+	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+	i = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
+	
 	h = m_imageGray.GetHeight();
 	w = m_imageGray.GetWidth();
-	while (1)
+	a = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
 	{
-		if (pool == NULL)
-			break;
-		pointnum = pool->num;
-		pool->edgenum = 0;
-		pool->edge = (int*)malloc(sizeof(int) * pointnum);
+		pointnum = (*it).num;
+		poolall[a].edgenum = 0;
+		poolall[a].edge = (int*)malloc(sizeof(int) * pointnum);
 		for (po = 0; po < pointnum*2; po++)
 		{
-			h0 = pool->point[po];
+			h0 = poolall[a].point[po];
 			po++;
-			w0 = pool->point[po];
+			w0 = poolall[a].point[po];
 			susan = 0;
 			for (i = 0; i < m; i++)
 			{
 				for (j = 0; j < n; j++)
 				{
 					//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
-					susan += pool->water[h0 - 1 + i][w0 - 1 + j] >= 1;
+					susan += poolall[a].water[h0 - 1 + i][w0 - 1 + j] >= 1;
 				}
 			}
 			susan = 9 - susan;
 			if (susan >= 1)
 			{
-				pool->edge[pool->edgenum * 2] = h0;
-				pool->edge[pool->edgenum * 2 + 1] = w0;
-				pool->edgenum++;
+				poolall[a].edge[poolall[a].edgenum * 2] = h0;
+				poolall[a].edge[poolall[a].edgenum * 2 + 1] = w0;
+				poolall[a].edgenum++;
 			}
 		}
-		pool = pool->next;
+		(*it).edgenum = poolall[a].edgenum;
+		(*it).edge = poolall[a].edge;
+		a++;
 	}
+	free(poolall);
 }
 
-void CdemoDlg::Disedge(struct Pool1* index)
+void CdemoDlg::Disedge(vector<struct Pool1> &index)
 {
 	unsigned char* p = (unsigned char*)m_image.GetBits();
-	int h, w, i, j, po;
-	struct Pool1* pcur = NULL;
-	int pointnum = 0;
+	int h, w, i, j, po, a;
 	int h0, w0;
 	int hmin, wmin, hmax, wmax;
+	int pointnum = 0, poolnum = 0;
+	struct Pool1* poolall = NULL;
+
+	poolnum = index.size();
+	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+	i = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
+	{
+		poolall[i] = (*it);
+		i++;
+	}
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
-	pcur = index->next;
-	while (1)
+	for (a = 0; a < poolnum; a++)
 	{
-		if (pcur == NULL)
-			break;
-		pointnum = pcur->edgenum;
-		hmin = hmax = pcur->edge[0];
-		wmin = wmax = pcur->edge[1];
+		pointnum = poolall[a].edgenum;
+		hmin = hmax = poolall[a].edge[0];
+		wmin = wmax = poolall[a].edge[1];
 		//画边界
 		for (po = 0; po < pointnum*2; po++)
 		{
-			h0 = pcur->edge[po];
+			h0 = poolall[a].edge[po];
 			po++;
-			w0 = pcur->edge[po];
+			w0 = poolall[a].edge[po];
 			if (w0 < wmin)wmin = w0;
 			if (w0 > wmax)wmax = w0;
 			if (h0 < hmin)hmin = h0;
@@ -2002,24 +1509,30 @@ void CdemoDlg::Disedge(struct Pool1* index)
 		{
 			for (i = 0; i < 3; i++)
 			{
-				*(p + (hmin - i) * w * 3 + j * 3) = 255;
-				*(p + (hmin - i) * w * 3 + j * 3 + 1) = 255;
-				*(p + (hmin - i) * w * 3 + j * 3 + 2) = 255;
-				*(p + (hmax + i) * w * 3 + j * 3) = 255;
-				*(p + (hmax + i) * w * 3 + j * 3 + 1) = 255;
-				*(p + (hmax + i) * w * 3 + j * 3 + 2) = 255;
+				if (hmin > 10 && hmax < h - 10 && wmax < w - 10 && wmin > 10)
+				{
+					*(p + (hmin - i) * w * 3 + j * 3) = 255;
+					*(p + (hmin - i) * w * 3 + j * 3 + 1) = 255;
+					*(p + (hmin - i) * w * 3 + j * 3 + 2) = 255;
+					*(p + (hmax + i) * w * 3 + j * 3) = 255;
+					*(p + (hmax + i) * w * 3 + j * 3 + 1) = 255;
+					*(p + (hmax + i) * w * 3 + j * 3 + 2) = 255;
+				}
 			}
 		}
 		for (j = hmin; j <= hmax; j++)
 		{
 			for (i = 0; i < 3; i++)
 			{
-				*(p + j * w * 3 + (wmin + i) * 3) = 255;
-				*(p + j * w * 3 + (wmin + i) * 3 + 1) = 255;
-				*(p + j * w * 3 + (wmin + i) * 3 + 2) = 255;
-				*(p + j * w * 3 + (wmax - i) * 3) = 255;
-				*(p + j * w * 3 + (wmax - i) * 3 + 1) = 255;
-				*(p + j * w * 3 + (wmax - i) * 3 + 2) = 255;
+				if (hmin > 10 && hmax < h - 10 && wmax < w - 10 && wmin > 10)
+				{
+					*(p + j * w * 3 + (wmin + i) * 3) = 255;
+					*(p + j * w * 3 + (wmin + i) * 3 + 1) = 255;
+					*(p + j * w * 3 + (wmin + i) * 3 + 2) = 255;
+					*(p + j * w * 3 + (wmax - i) * 3) = 255;
+					*(p + j * w * 3 + (wmax - i) * 3 + 1) = 255;
+					*(p + j * w * 3 + (wmax - i) * 3 + 2) = 255;
+				}
 			}
 		}
 		//画几何中心
@@ -2027,76 +1540,92 @@ void CdemoDlg::Disedge(struct Pool1* index)
 		{
 			for (j = 0; j < 2; j++)
 			{
-				*(p + (pcur->h0 + i) * w * 3 + (pcur->w0 + j) * 3) = 255;
-				*(p + (pcur->h0 + i) * w * 3 + (pcur->w0 + j) * 3 + 1) = 0;
-				*(p + (pcur->h0 + i) * w * 3 + (pcur->w0 + j) * 3 + 2) = 0;
+				*(p + (poolall[a].h0 + i) * w * 3 + (poolall[a].w0 + j) * 3) = 255;
+				*(p + (poolall[a].h0 + i) * w * 3 + (poolall[a].w0 + j) * 3 + 1) = 0;
+				*(p + (poolall[a].h0 + i) * w * 3 + (poolall[a].w0 + j) * 3 + 2) = 0;
 			}
 		}
-		pcur = pcur->next;
 	}
+	free(poolall);
 }
 
-void CdemoDlg::JudgePiece(struct Pool1*index)
+void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 {
-	struct Pool1* pcur = NULL;
-	int i, j;
+	int i, j, a;
 	double th, distence, dmax, dmin;
 	int state;
+	int poolnum = 0;
+	struct Pool1* poolall = NULL;
 
-	pcur = index->next;
-	while (1)
+	poolnum = index.size();
+	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+	i = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
 	{
-		if (pcur == NULL)
-			break;
-		if (pcur->num < Sth)//面积小于10000
+		poolall[i] = (*it);
+		i++;
+	}
+
+	a = 0;
+	for (auto it = index.begin(); it != index.end(); it++)
+	{
+		if (poolall[a].num < Sth)//面积小于10000
 		{
-			if (pcur->water[pcur->h0][pcur->w0] < 1)//几何中心不在工件内
+			if (poolall[a].water[poolall[a].h0][poolall[a].w0] < 1)//几何中心不在工件内
 			{
-				pcur->type = Nut; 
+				(*it).type = Nut; 
 			}
 			else { //几何中心在工件内
-				dmin = dmax = sqrt((pcur->edge[0] - pcur->h0) * (pcur->edge[0] - pcur->h0) + (pcur->edge[1] - pcur->w0) * (pcur->edge[1] - pcur->w0));
-				for (i = 1; i < pcur->edgenum; i++)
+				dmin = dmax = sqrt((poolall[a].edge[0] - poolall[a].h0) * (poolall[a].edge[0] - poolall[a].h0) + (poolall[a].edge[1] - poolall[a].w0) * (poolall[a].edge[1] - poolall[a].w0));
+				for (i = 1; i < poolall[a].edgenum; i++)
 				{
-					distence = sqrt((pcur->edge[i * 2] - pcur->h0) * (pcur->edge[i * 2] - pcur->h0) + (pcur->edge[i * 2 + 1] - pcur->w0) * (pcur->edge[i * 2 + 1] - pcur->w0));
+					distence = sqrt((poolall[a].edge[i * 2] - poolall[a].h0) * (poolall[a].edge[i * 2] - poolall[a].h0) + (poolall[a].edge[i * 2 + 1] - poolall[a].w0) * (poolall[a].edge[i * 2 + 1] - poolall[a].w0));
 					if (distence < dmin) dmin = distence;
 					if (distence > dmax) dmax = distence;
 				}
 				if (dmax / dmin < 8)//长宽比小于阈值为螺栓
-					pcur->type = Bolt;
+					(*it).type = Bolt;
 				else
-					pcur->type = Screw;
+					(*it).type = Screw;
 			}
 		}
 		else {//面积大于10000
-			if (pcur->water[pcur->h0][pcur->w0] < 1)//几何中心不在工件内
+			if (poolall[a].water[poolall[a].h0][poolall[a].w0] < 1)//几何中心不在工件内
 			{
-				pcur->type = Wrench;
+				(*it).type = Wrench;
 			}
 			else {//几何中心在工件内
 				state = 0;
-				//th = sqrt((pcur->edge[0] - pcur->h0) * (pcur->edge[0] - pcur->h0) + (pcur->edge[1] - pcur->w0) * (pcur->edge[1] - pcur->w0));
+				//th = sqrt((poolall[a].edge[0] - poolall[a].h0) * (poolall[a].edge[0] - poolall[a].h0) + (poolall[a].edge[1] - poolall[a].w0) * (poolall[a].edge[1] - poolall[a].w0));
 				th = 0;
-				for (i = 0; i < pcur->edgenum; i++)
+				for (i = 0; i < poolall[a].edgenum; i++)
 				{
-					th += sqrt((pcur->edge[i * 2] - pcur->h0) * (pcur->edge[i * 2] - pcur->h0) + (pcur->edge[i * 2 + 1] - pcur->w0) * (pcur->edge[i * 2 + 1] - pcur->w0));
+					th += sqrt((poolall[a].edge[i * 2] - poolall[a].h0) * (poolall[a].edge[i * 2] - poolall[a].h0) + (poolall[a].edge[i * 2 + 1] - poolall[a].w0) * (poolall[a].edge[i * 2 + 1] - poolall[a].w0));
 				}
-				th /= pcur->edgenum;
-				for (i = 0; i < pcur->edgenum; i++)
+				th /= poolall[a].edgenum;
+				for (i = 0; i < poolall[a].edgenum; i++)
 				{
-					distence = sqrt((pcur->edge[i * 2] - pcur->h0) * (pcur->edge[i * 2] - pcur->h0) + (pcur->edge[i * 2 + 1] - pcur->w0) * (pcur->edge[i * 2 + 1] - pcur->w0));
+					distence = sqrt((poolall[a].edge[i * 2] - poolall[a].h0) * (poolall[a].edge[i * 2] - poolall[a].h0) + (poolall[a].edge[i * 2 + 1] - poolall[a].w0) * (poolall[a].edge[i * 2 + 1] - poolall[a].w0));
 					if (distence < 0.9 * th || distence > 1.1 * th)
 					{
 						state++;
 					}
 				}
 				if (state < 100)//所有边缘点到Coin中心距离近似相等，抛除部分误差
-					pcur->type = Coin;
+					(*it).type = Coin;
 				else {
-					pcur->type = Block;
+					(*it).type = Block;
 				}
 			}
 		}
-		pcur = pcur->next;
+		a++;
 	}
+	free(poolall);
+}
+
+
+void CdemoDlg::OnBnClickedendrecg()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	Recgon = 0;
 }

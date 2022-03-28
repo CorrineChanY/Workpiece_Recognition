@@ -57,10 +57,6 @@ public:
 		int symbel;//工件序号
 		int num;//工件像素数
 		int** water;//工件图片
-		struct Pool1* next;//下一个工件节点
-		struct Pool1* end;//仅index中保存链表队尾
-		/*vector<int>point;
-		vector<int>edge;*/
 		int* point;//记录所有点
 		int* edge;//记录边界
 		int edgenum;//记录边界点数
@@ -87,19 +83,16 @@ public:
 	void Corrode();
 	void Expand();
 	void Susan();
-	void Watershed(struct Pool1* index);
-	/*int Waterinpool(struct Pool pool, int h, int w);
-	void replacepool(struct Pool* pool);
-	void Displayedge(struct Pool* fpool);*/
-	void grow(int h, int w, struct Pool1 index, int h0, int w0, int th);
-	/*void growagain(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool);*/
-	void growagain1(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh);
-	void growdone(int h1, int w1, struct Pool1 index, int h0, int w0, struct Pool1* pool, int Th, int wh);
-	void Dispool(struct Pool1* index);
-	void freepool(struct Pool1* index);
-	void simplar_susan(struct Pool1* index);
-	void Disedge(struct Pool1* index);
-	void JudgePiece(struct Pool1* index);
+	void Watershed(vector<struct Pool1> &index);
+	void grow(int h, int w, vector<struct Pool1> &index, int h0, int w0, int th);
+	void growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
+	void growdone(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
+	void Dispool(vector<struct Pool1> index);
+	void freepool(vector<struct Pool1> index);
+	void simplar_susan(vector<struct Pool1> &index);
+	void Disedge(vector<struct Pool1> &index);
+	void JudgePiece(vector<struct Pool1> &index);
+	void CdemoDlg::Change_Image();
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();
@@ -109,4 +102,5 @@ public:
 	afx_msg void OnBnClickedstartrecg();
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnStnClickedpicgray();
+	afx_msg void OnBnClickedendrecg();
 };

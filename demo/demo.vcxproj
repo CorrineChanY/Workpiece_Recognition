@@ -201,6 +201,7 @@
   <ItemGroup>
     <ClInclude Include="demo.h" />
     <ClInclude Include="demoDlg.h" />
+    <ClInclude Include="disNums.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />

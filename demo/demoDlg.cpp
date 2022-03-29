@@ -75,8 +75,6 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CdemoDlg::OnBnClickedOk)
-	//ON_BN_CLICKED(IDC_BUTTON1, &CdemoDlg::OnBnClickedButton1)
-	//ON_BN_CLICKED(IDC_BUTTON2, &CdemoDlg::OnBnClickedButton2)
 	ON_BN_CLICKED(IDC_OpenCam, &CdemoDlg::OnBnClickedOpencam)
 	ON_BN_CLICKED(IDC_StartGrab, &CdemoDlg::OnBnClickedStartgrab)
 	ON_BN_CLICKED(IDC_CloseCam, &CdemoDlg::OnBnClickedClosecam)
@@ -239,19 +237,6 @@ void CdemoDlg::DrawImage()
 	ReleaseDC(pDC);
 }
 
-//void CdemoDlg::DrawImageGray()
-//{
-//	CRect rct;
-//	GetDlgItem(picGray)->GetClientRect(&rct);
-//	int dstW = rct.Width();
-//	int dstH = rct.Height();
-//	CDC* pDC = GetDlgItem(picGray)->GetDC();
-//	{
-//		pDC->SetStretchBltMode(BLACKONWHITE);
-//		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
-//	}
-//	ReleaseDC(pDC);
-//}
 
 int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 {
@@ -261,7 +246,10 @@ int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 	{
 		Change_Image();
 	}
-	DrawImage();
+	if (Wrong == 0)
+	{
+		DrawImage();
+	}
 	return 0;
 }
 
@@ -276,6 +264,7 @@ void CdemoDlg::OnBnClickedStartgrab()
 	// TODO: 在此添加控件通知处理程序代码
 	TriggerModeEnums enumMode;
 	Recgon = 0;
+	Wrong = 0;
 	MVGetTriggerMode(m_hCam, &enumMode);
 	if (enumMode != TriggerMode_Off)
 	{
@@ -318,76 +307,10 @@ void CdemoDlg::OnClose()
 	CDialog::OnClose();
 }
 
-BOOL CdemoDlg::readBMP()
-{
-	//img = m_image.Load((LPCTSTR)"../photo/photo/1.bmp"); // 这个自带的方法不行
-	int wid = 0, hgt = 0;
-	int len = 0, offset = 0;
-	char temp[4] = { 0 };
-
-	// 1. 打开图片文件
-	ifstream img("../photo/photo/4.bmp", ifstream::in | ios::binary); // 默认打开的是1.bmp
-	if (!img) {
-		cout << "Can not open this image!" << endl;
-		return false;
-	}
-	// 2. 计算图片长度
-	img.seekg(2, ios::beg);
-	img.read(temp, 4); // bfSize
-	memcpy(&len, temp, 4);
-	img.seekg(10, ios::beg);
-	img.read(temp, 4); // bfOffBits
-	memcpy(&offset, temp, 4);
-	img.seekg(18, ios::beg);
-	img.read(temp, 4); // biWidth
-	memcpy(&wid, temp, 4);
-	img.seekg(22, ios::beg);
-	img.read(temp, 4); // biHeight
-	memcpy(&hgt, temp, 4);
-	// 3. 读取RGB数值
-	img.seekg(offset, ios::beg);
-	m_image.CreateByPixelFormat(wid, hgt, PixelFormat_BayerRG8); // RGB
-	m_imageGray.CreateByPixelFormat(wid, hgt, PixelFormat_Mono8); // 灰度
-	m_imageDid.CreateByPixelFormat(wid, hgt, PixelFormat_Mono8); // 灰度
-	m_imageDid1.CreateByPixelFormat(wid, hgt, PixelFormat_Mono8); // 灰度
-	char* p = (char*)m_image.GetBits();
-	img.read(p, wid * hgt * 3); // 这样读出来是上下颠倒的
-	img.close();
-
-	return true;
-}
-
-void CdemoDlg::getGay()
-{
-	//MVBGRToGray(HANDLE hCam, unsigned char* psrc, unsigned char* pdst, unsigned int width, unsigned int height); // 没连相机，应该不行
-
-}
 
 // “开始识别”点击事件
 void CdemoDlg::OnBnClickedstartrecg()
 {
-	//vector<struct Pool1> index = NULL;//单一工件图链表起始节点，读取工件图从index->next开始读起
-
-	/*vector<struct Pool1> index;*/
-	//readBMP();
-	//DrawImage();
-	//Image_Gray();
-	////DrawImageGray();
-	//Watershed(index);//获取单一工件图链表
-	////simplar_susan(index);//获取工件边缘
-	////Dispool(index);//在原图中标记工件
-	//Disedge(index);//在原图上标记边界
-	//JudgePiece(index);//判断工件类型
-	//freepool(index);
-	////Corrode();
-	////Corrode();
-	////Expand();
-	////Expand();
-
-	////////Susan();
-
-	////DrawImage();
-	////DrawImageGray();
 	Recgon = 1;
 }
 
@@ -403,15 +326,14 @@ void CdemoDlg::Change_Image()
 {
 	vector<struct Pool1> index;
 
+	Wrong = 0;
 	Image_Gray();
-	//DrawImageGray();
 	if (Watershed(index))//获取单一工件图链表
 	{
-		//simplar_susan(index);//获取工件边缘
-		//Dispool(index);//在原图中标记工件
 		Disedge(index);//在原图上标记边界
 		JudgePiece(index);//判断工件类型
 		freepool(index);
+		Wrong = 0;
 	}
 }
 
@@ -471,34 +393,6 @@ void CdemoDlg::Image_Gray()
 }
 
 
-// 获取中值
-unsigned char CdemoDlg::Median(unsigned char n1, unsigned char n2, unsigned char n3, 
-	unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7, 
-	unsigned char n8, unsigned char n9)
-{
-	unsigned char arr[9];
-	unsigned char temp;
-	arr[0] = n1;
-	arr[1] = n2;
-	arr[2] = n3;
-	arr[3] = n4;
-	arr[4] = n5;
-	arr[5] = n6;
-	arr[6] = n7;
-	arr[7] = n8;
-	arr[8] = n9;
-	for (int gap = 9 / 2; gap > 0; gap /= 2)//希尔排序
-		for (int i = gap; i < 9; ++i)
-			for (int j = i - gap; j >= 0 && arr[j] > arr[j + gap]; j -= gap)
-			{
-				temp = arr[j];
-				arr[j] = arr[j + gap];
-				arr[j + gap] = temp;
-			}
-	return arr[4];//返回中值
-}
-
-
 // 腐蚀
 void CdemoDlg::Corrode(int num, int th)
 {
@@ -520,15 +414,6 @@ void CdemoDlg::Corrode(int num, int th)
 		}
 	}
 
-	/*for (i = 0; i < h; i++)
-	{
-		for (j = 0; j < w; j++)
-		{
-			if (*(pool + i * w + j) > th + 1)
-				*(pool + i * w + j) = 255;
-		}
-	}*/
-
 	if (num > 0)
 	{
 		for (n = 0; n < num; n++)
@@ -538,14 +423,6 @@ void CdemoDlg::Corrode(int num, int th)
 				for (j = 2; j < w - 2; j++)
 				{
 					pcur = pool + i * w + j;
-					/*if ((*(pcur - 1) > th0 || *(pcur + 1) > th0 ||
-						*(pcur - w) > th || *(pcur + w) > th0 ||
-						*(pcur - w - 1) > th0 || *(pcur - w + 1) > th0 ||
-						*(pcur + w - 1) > th0 || *(pcur + w + 1) > th0 ||
-						*(pcur - 2) > th0 || *(pcur + 2) > th0 ||
-						*(pcur - 2 * w) > th0 || *(pcur + 2 * w) > th0 ||
-						*(pcur - w - 2) > th0 || *(pcur - w + 2) > th0 ||
-						*(pcur + w - 2) > th0 || *(pcur + w + 2) > th0) && *pcur != 255)*/
 					if (*(pcur - 1) > th || *(pcur + 1) > th ||
 						*(pcur - w) > th || *(pcur + w) > th ||
 						*(pcur - w - 1) > th || *(pcur - w + 1) > th ||
@@ -564,17 +441,6 @@ void CdemoDlg::Corrode(int num, int th)
 			}
 		}
 	}
-	/*p = (unsigned char*)m_imageGray.GetBits();
-	pDst = (unsigned char*)m_imageDid.GetBits();
-	for (i = 0; i < h; i++)
-	{
-		for (j = 0; j < w; j++)
-		{
-			*p = *pDst;
-			pDst++;
-			p++;
-		}
-	}*/
 }
 
 // 膨胀
@@ -621,59 +487,6 @@ void CdemoDlg::Expand()
 	}
 }
 
-// Susan算子检测边缘和角点
-void CdemoDlg::Susan()
-{
-	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-	unsigned char* pOrg = (unsigned char*)m_image.GetBits();
-	int i, j, m, n;
-	int w, h;
-	unsigned char* Susan = NULL; // Susan矩阵
-	int c;
-
-	w = m_imageGray.GetWidth();
-	h = m_imageGray.GetHeight();
-
-	Susan = (unsigned char*)malloc(static_cast<unsigned long long>(h) * w * sizeof(unsigned char));
-
-
-	// 形成Susan矩阵
-	for (i = 3; i < h - 3; i++) {
-		for (j = 3; j < w - 3; j++) {
-			c = 0;
-			for (m = 0; m < 3; m++) {
-				for ( n = 0; n < 3; n++)
-				{
-					c += exp(-1 * pow((*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) / 180, 2)); // T=130
-					//c += abs(*(p + i * w + j) - *(p + j + i * w - w - 1 + w * m + n)) > 200 ? 1 : 0;
-				}
-			}
-			if (c < 6) *(Susan + i * w + j) = 6 - c;
-			else *(Susan + i * w + j) = 0;
-			cout << *(Susan + i * w + j);
-		}
-	}
-
-	// 判断角点和边缘
-	for ( i = 0; i < h; i++)
-	{
-		for (j = 0; j < w; j++) {
-			if (*(Susan + i * w + j) > 1) // 角点, 在原图上显示绿色
-			{
-				*(pOrg + i * w * 3 + j * 3) = 0;
-				*(pOrg + i * w * 3 + j * 3 + 1) = 255;
-				*(pOrg + i * w * 3 + j*3 + 2) = 0;
-			}
-			else if(*(Susan + i * w + j) > 0) // 边缘，在原图上显示白色
-			{
-				*(pOrg + i * w * 3 + j * 3) = 255;
-				*(pOrg + i * w * 3 + j*3 + 1) = 255;
-				*(pOrg + i * w * 3 + j * 3 + 2) = 255;
-			}
-		}
-	}
-}
-
 //Watershed基于区域生长的分水岭算法
 int CdemoDlg::Watershed(vector<struct Pool1> &index)
 {
@@ -683,7 +496,6 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	int i, j, a, b, wh, count, count1, c, d;
 	double sum = 0;
 	double sum1 = 0;
-	//vector<struct Pool1> index;//各工件图片队列的首节点，自身不保存工件信息
 	struct Pool1 pool;
 	struct Pool1* pcur = NULL;
 	struct Pool1* belong = NULL;
@@ -746,6 +558,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 						{
 							freepool(index);
 							index.swap(vector<struct Pool1>());
+							Wrong = 1;
 							return 0;
 						}
 						pool.symbel = typenum;
@@ -1209,14 +1022,6 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
-		if (bar == 1)
-		{
-			for (i = 0; i < num; i++)
-			{
-				//obj.pop_back();
-				//obj.pop_back();
-			}
-		}
 		if (obj.empty())
 			break;
 	}
@@ -1291,7 +1096,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h - 2 + i][w - 2 + j] >= 1;
 					}
 				}
@@ -1335,7 +1139,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h - 2 + i][w - 1 + j] >= 1;
 					}
 				}
@@ -1379,7 +1182,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h - 2 + i][w + j] >= 1;
 					}
 				}
@@ -1424,7 +1226,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h - 1 + i][w - 2 + j] >= 1;
 					}
 				}
@@ -1468,7 +1269,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h - 1 + i][w + j] >= 1;
 					}
 				}
@@ -1513,7 +1313,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h + i][w - 2 + j] >= 1;
 					}
 				}
@@ -1557,7 +1356,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h + i][w - 1 + j] >= 1;
 					}
 				}
@@ -1601,7 +1399,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				{
 					for (j = 0; j < n; j++)
 					{
-						//susan += *(p + (h0 - 1 + i) * w + w0 - 1 + n) >= 1;
 						susan += pool->water[h + i][w + j] >= 1;
 					}
 				}
@@ -1621,15 +1418,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			}
 			else {
 				bar = 1;
-			}
-		}
-		if (bar == 1)
-		{
-			for (i = 0; i < num; i++)
-			{
-				//obj.pop_back();
-				//obj.pop_back();
-				//pool->num--;
 			}
 		}
 		if (obj.empty())
@@ -1669,24 +1457,6 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 			pointnum = poolall[a].edgenum;
 			hmin = hmax = poolall[a].edge[0];
 			wmin = wmax = poolall[a].edge[1];
-			//画边界
-			/*for (po = 0; po < pointnum * 2; po++)
-			{
-				h0 = poolall[a].edge[po];
-				po++;
-				w0 = poolall[a].edge[po];
-				if (w0 < wmin)wmin = w0;
-				if (w0 > wmax)wmax = w0;
-				if (h0 < hmin)hmin = h0;
-				if (h0 > hmax)hmax = h0;
-				*(p + h0 * w * 3 + w0 * 3) = 255;
-				*(p + h0 * w * 3 + w0 * 3 + 1) = 255;
-				*(p + h0 * w * 3 + w0 * 3 + 2) = 255;
-			}
-			wmin = poolall[a].wmin;
-			wmax = poolall[a].wmax;
-			hmax = poolall[a].hmax;
-			hmin = poolall[a].hmin;*/
 			//画框
 			for (j = poolall[a].wmin; j <= poolall[a].wmax; j++)
 			{
@@ -1862,29 +1632,11 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 				}
 			}
 
-			//int x0 = a < 10 ? 1800 : 1800 + 200;
-			//int y0 = 300;
-			//// 输出序号
-			//CButton* p_No = new CButton();
-			//ASSERT_VALID(p_No);
-			//string no = to_string(a + 1);
-			//CString cno;
-			//cno = no.c_str();
-			//p_No->Create(cno, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(x0 - 50, y0 + 20 * a, 10, 10), this, (1030 + a * 3)); //创建按钮
-
-			// 输出分类
-			//CButton* p_Class = new CButton();
-			//ASSERT_VALID(p_Class);
-			//p_Class->Create(classes[(*it).type - 1], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON , CRect(x0, y0 + 20 * a, 10, 10), this, (1030 + a*3 + 1)); //创建按钮
 			GetDlgItem(1018 + a)->SetWindowTextW(classes[(*it).type - 1]);
 
-			// 输出像素个数
-			//CButton* p_Num = new CButton();
-			//ASSERT_VALID(p_Num);
 			string str = to_string((*it).num);
 			CString cstr;
 			cstr = str.c_str();
-			//p_Num->Create(cstr, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(x0 + 50, y0 + 20 * a, 10, 10), this, (1030 + a*3 + 2)); //创建按钮
 			GetDlgItem(1038 + a)->SetWindowTextW(cstr);
 			a++;
 		}

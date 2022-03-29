@@ -99,6 +99,7 @@ public:
 	void Change_Image();
 	void reset();
 	int Recgon;
+	int Wrong;
 
 	afx_msg void OnBnClickedOpencam();
 	afx_msg void OnBnClickedStartgrab();

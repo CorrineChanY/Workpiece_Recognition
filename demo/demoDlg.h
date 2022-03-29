@@ -6,7 +6,7 @@
 #include "MVGigE.h"
 #include "MVImage.h"
 #include<vector>
-#define Sth 10000
+#define Sth 15000
 using namespace std;
 
 
@@ -64,12 +64,16 @@ public:
 		int h0;//记录几何中心纵坐标
 		int w0;//记录几何中心横坐标
 		enum Piece type;//记录工件类型
+		int wmin;
+		int wmax;
+		int hmax;
+		int hmin;
 	};
 	//通过回调函数获取图像数据信息
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
 	//画图
 	void DrawImage();
-	void DrawImageGray();
+	//void DrawImageGray();
 	//关闭相机、释放资源
 	void OnClose();
 	// 读取bmp图片
@@ -92,7 +96,8 @@ public:
 	void freepool(vector<struct Pool1> index);
 	void Disedge(vector<struct Pool1> &index);
 	void JudgePiece(vector<struct Pool1> &index);
-	void CdemoDlg::Change_Image();
+	void Change_Image();
+	void reset();
 	int Recgon;
 
 	afx_msg void OnBnClickedOpencam();
@@ -101,6 +106,5 @@ public:
 	afx_msg void OnStnClickedpic();
 	afx_msg void OnBnClickedstartrecg();
 	afx_msg void OnBnClickedCancel();
-	afx_msg void OnStnClickedpicgray();
 	afx_msg void OnBnClickedendrecg();
 };

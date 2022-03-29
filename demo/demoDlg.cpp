@@ -371,26 +371,26 @@ void CdemoDlg::OnBnClickedstartrecg()
 	//vector<struct Pool1> index = NULL;//单一工件图链表起始节点，读取工件图从index->next开始读起
 
 	vector<struct Pool1> index;
-	readBMP();
-	DrawImage();
-	Image_Gray();
-	DrawImageGray();
-	Watershed(index);//获取单一工件图链表
-	//simplar_susan(index);//获取工件边缘
-	//Dispool(index);//在原图中标记工件
-	Disedge(index);//在原图上标记边界
-	JudgePiece(index);//判断工件类型
-	freepool(index);
-	//Corrode();
-	//Corrode();
-	//Expand();
-	//Expand();
+	//readBMP();
+	//DrawImage();
+	//Image_Gray();
+	//DrawImageGray();
+	//Watershed(index);//获取单一工件图链表
+	////simplar_susan(index);//获取工件边缘
+	////Dispool(index);//在原图中标记工件
+	//Disedge(index);//在原图上标记边界
+	//JudgePiece(index);//判断工件类型
+	//freepool(index);
+	////Corrode();
+	////Corrode();
+	////Expand();
+	////Expand();
 
-	////Susan();
+	//////Susan();
 
-	DrawImage();
-	DrawImageGray();
-	//Recgon = 1;
+	//DrawImage();
+	//DrawImageGray();
+	Recgon = 1;
 }
 
 void CdemoDlg::Change_Image()
@@ -432,6 +432,8 @@ void CdemoDlg::Image_Gray()
 	w = m_image.GetWidth();
 	h = m_image.GetHeight();
 	p = (unsigned char*)m_image.GetBits();
+
+	ofstream out("output.txt");
 
 	for (i = 0; i < h; i++)
 	{
@@ -717,17 +719,17 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		}
 		p++;
 	}
-	Corrode(2, 15);
+	Corrode(1, 30);
 	sum1 = sum1 / count1;
 	pDst = (unsigned char*)m_imageDid.GetBits();
 	while (1)
 	{
 		found = 0;
-		for (i = 100; i < h - 100; i++)
+		for (i = 200; i < h - 200; i++)
 		{
-			for (j = 100; j < w - 100; j++)
+			for (j = 200; j < w - 200; j++)
 			{
-				if (*(pDst + i * w + j) < 5)
+				if (*(pDst + i * w + j) < 20)
 				{
 					state = 0;
 					for (auto it = index.begin(); it != index.end(); ++it)
@@ -742,7 +744,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 						pool.symbel = typenum;
 						typenum++;
 						index.push_back(pool);
-						grow(i, j, index, h, w, 10);
+						grow(i, j, index, h, w, 30);
 						found = 1;
 					}
 				}
@@ -765,7 +767,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	poolnum = index.size();
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
 
-	for (a = 11; a < 16; a++)
+	for (a = 31; a < 35; a++)
 	{
 		c = 0;
 		for (auto it1 = index.begin(); it1 != index.end(); it1++)
@@ -1049,7 +1051,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h - 1][w] >= 1)
 				{
 					state = 0;
 					break;
@@ -1071,7 +1073,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h - 1][w + 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1094,7 +1096,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h][w - 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1116,7 +1118,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h][w + 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1139,7 +1141,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1161,7 +1163,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w] >= 1)
 				{
 					state = 0;
 					break;
@@ -1183,7 +1185,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w + 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1211,6 +1213,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 		if (obj.empty())
 			break;
 	}
+	pool->num;
 	free(poolall);
 }
 
@@ -1302,7 +1305,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h - 1][w] >= 1)
 				{
 					state = 0;
 					break;
@@ -1342,7 +1345,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h - 1][w + 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1383,7 +1386,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h][w - 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1423,7 +1426,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h][w + 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1464,7 +1467,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w - 1] >= 1)
 				{
 					state = 0;
 					break;
@@ -1504,7 +1507,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w] >= 1)
 				{
 					state = 0;
 					break;
@@ -1544,7 +1547,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 			state = 1;
 			for (i = 0; i < poolnum; i++)
 			{
-				if (poolall[i].water[h - 1][w - 1] >= 1)
+				if (poolall[i].water[h + 1][w + 1] >= 1)
 				{
 					state = 0;
 					break;

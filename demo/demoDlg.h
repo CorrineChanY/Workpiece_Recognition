@@ -45,6 +45,7 @@ public:
 	MVImage m_image;
 	//定义图像处理后的对象
 	MVImage m_imageDid;
+	MVImage m_imageDid1;
 	MVImage m_imageGray;
 	//定义像素格式对象
 	MV_PixelFormatEnums m_PixelFormat;
@@ -55,10 +56,10 @@ public:
 	};//硬币，积木，螺母，螺栓，螺丝，扳手
 	struct Pool1 {
 		int symbel;//工件序号
-		int num;//工件像素数
+		long int num;//工件像素数
 		int** water;//工件图片
-		int* point;//记录所有点
-		int* edge;//记录边界
+		//int* point;//记录所有点
+		int edge[5000];//记录边界
 		int edgenum;//记录边界点数
 		int h0;//记录几何中心纵坐标
 		int w0;//记录几何中心横坐标
@@ -80,16 +81,15 @@ public:
 	unsigned char Median(unsigned char n1, unsigned char n2, unsigned char n3,
 		unsigned char n4, unsigned char n5, unsigned char n6, unsigned char n7,
 		unsigned char n8, unsigned char n9);
-	void Corrode();
+	void Corrode(int num, int th);
 	void Expand();
 	void Susan();
-	void Watershed(vector<struct Pool1> &index);
+	int Watershed(vector<struct Pool1> &index);
 	void grow(int h, int w, vector<struct Pool1> &index, int h0, int w0, int th);
 	void growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
-	void growdone(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
+	void grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
 	void Dispool(vector<struct Pool1> index);
 	void freepool(vector<struct Pool1> index);
-	void simplar_susan(vector<struct Pool1> &index);
 	void Disedge(vector<struct Pool1> &index);
 	void JudgePiece(vector<struct Pool1> &index);
 	void CdemoDlg::Change_Image();

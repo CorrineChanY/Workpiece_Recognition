@@ -69,7 +69,7 @@ public:
 	int OnStreamCB(MV_IMAGE_INFO* pInfo);
 	//画图
 	void DrawImage();
-	void DrawImageGray();
+	//void DrawImageGray();
 	//关闭相机、释放资源
 	void OnClose();
 	// 读取bmp图片
@@ -101,6 +101,5 @@ public:
 	afx_msg void OnStnClickedpic();
 	afx_msg void OnBnClickedstartrecg();
 	afx_msg void OnBnClickedCancel();
-	afx_msg void OnStnClickedpicgray();
 	afx_msg void OnBnClickedendrecg();
 };

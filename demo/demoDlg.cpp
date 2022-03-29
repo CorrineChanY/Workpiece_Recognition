@@ -8,12 +8,11 @@
 #include "afxdialogex.h"
 #include "digital.h"
 #include "disNums.h"
-#include<malloc.h>
-#include<iostream>
+#include <malloc.h>
+#include <iostream>
 #include <fstream>
-#include<vector>
+#include <vector>
 #include <string> 
-//#define th 10
 #define th1 20
 using namespace std;
 
@@ -84,7 +83,6 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_STN_CLICKED(pic, &CdemoDlg::OnStnClickedpic)
 	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
 	ON_BN_CLICKED(IDCANCEL, &CdemoDlg::OnBnClickedCancel)
-	ON_STN_CLICKED(picGray, &CdemoDlg::OnStnClickedpicgray)
 	ON_BN_CLICKED(endRecg, &CdemoDlg::OnBnClickedendrecg)
 END_MESSAGE_MAP()
 
@@ -241,19 +239,19 @@ void CdemoDlg::DrawImage()
 	ReleaseDC(pDC);
 }
 
-void CdemoDlg::DrawImageGray()
-{
-	CRect rct;
-	GetDlgItem(picGray)->GetClientRect(&rct);
-	int dstW = rct.Width();
-	int dstH = rct.Height();
-	CDC* pDC = GetDlgItem(picGray)->GetDC();
-	{
-		pDC->SetStretchBltMode(BLACKONWHITE);
-		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
-	}
-	ReleaseDC(pDC);
-}
+//void CdemoDlg::DrawImageGray()
+//{
+//	CRect rct;
+//	GetDlgItem(picGray)->GetClientRect(&rct);
+//	int dstW = rct.Width();
+//	int dstH = rct.Height();
+//	CDC* pDC = GetDlgItem(picGray)->GetDC();
+//	{
+//		pDC->SetStretchBltMode(BLACKONWHITE);
+//		m_imageGray.Draw(pDC->GetSafeHdc(), 0, 0, dstW, dstH);
+//	}
+//	ReleaseDC(pDC);
+//}
 
 int CdemoDlg::OnStreamCB(MV_IMAGE_INFO* pInfo)
 {
@@ -374,7 +372,7 @@ void CdemoDlg::OnBnClickedstartrecg()
 	readBMP();
 	DrawImage();
 	Image_Gray();
-	DrawImageGray();
+	//DrawImageGray();
 	Watershed(index);//获取单一工件图链表
 	//simplar_susan(index);//获取工件边缘
 	//Dispool(index);//在原图中标记工件
@@ -389,7 +387,7 @@ void CdemoDlg::OnBnClickedstartrecg()
 	////Susan();
 
 	DrawImage();
-	DrawImageGray();
+	//DrawImageGray();
 	//Recgon = 1;
 }
 
@@ -398,7 +396,7 @@ void CdemoDlg::Change_Image()
 	vector<struct Pool1> index;
 
 	Image_Gray();
-	DrawImageGray();
+	//DrawImageGray();
 	if (Watershed(index))//获取单一工件图链表
 	{
 		//simplar_susan(index);//获取工件边缘
@@ -666,11 +664,6 @@ void CdemoDlg::Susan()
 			}
 		}
 	}
-}
-
-void CdemoDlg::OnStnClickedpicgray()
-{
-	// TODO: 在此添加控件通知处理程序代码
 }
 
 //Watershed基于区域生长的分水岭算法
@@ -1677,6 +1670,48 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 				*(p + (poolall[a].h0 + i) * w * 3 + (poolall[a].w0 + j) * 3 + 2) = 0;
 			}
 		}
+
+		int x0 = (hmin - 30) > 0 ? hmin - 30 : 0;
+		int y0 = (wmin + 15) < w ? wmin : w - 16;
+		// 标数字
+		if ((a+1) < 10) {
+			for (i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[a+1][i][j] == 1) {
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 1) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 2) = 255;
+					}
+				}
+			}
+		}
+		else if (a+1 < 20)
+		{
+			int shiwei = 1; // 十位数
+			int gewei = a+1 - 10; // 个位数
+			y0 = (wmin + 15 + 20) < w ? wmin : w - 36;
+			for (i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[shiwei][i][j] == 1) {
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 1) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 2) = 255;
+					}
+				}
+			}
+			for (i = 0; i < 25; i++)
+			{
+				for (j = 0; j < 15; j++) {
+					if (nums[gewei][i][j] == 1) {
+						*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3 + 1) = 255;
+						*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3 + 2) = 255;
+					}
+				}
+			}
+		}
 	}
 	free(poolall);
 }
@@ -1688,6 +1723,10 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 	int state;
 	int poolnum = 0;
 	struct Pool1* poolall = NULL;
+	int counts[6] = {0}; // 各类别计数 0:硬币 1:积木 2:螺母 3:螺栓 4:螺钉 5:扳手
+	wchar_t classes[6][10] = {
+		L"硬币", L"积木", L"螺母", L"螺栓", L"螺钉", L"扳手"
+	};
 
 	poolnum = index.size();
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
@@ -1706,6 +1745,7 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 			if (poolall[a].water[poolall[a].h0][poolall[a].w0] < 1)//几何中心不在工件内
 			{
 				(*it).type = Nut; 
+				counts[2]++;
 			}
 			else { //几何中心在工件内
 				dmin = dmax = sqrt((poolall[a].edge[0] - poolall[a].h0) * (poolall[a].edge[0] - poolall[a].h0) + (poolall[a].edge[1] - poolall[a].w0) * (poolall[a].edge[1] - poolall[a].w0));
@@ -1715,20 +1755,24 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 					if (distence < dmin) dmin = distence;
 					if (distence > dmax) dmax = distence;
 				}
-				if (dmax / dmin < 8)//长宽比小于阈值为螺栓
+				if (dmax / dmin < 8) {//长宽比小于阈值为螺栓
 					(*it).type = Bolt;
-				else
+					counts[3]++;
+				}
+				else {
 					(*it).type = Screw;
+					counts[4]++;
+				}
 			}
 		}
 		else {//面积大于10000
 			if (poolall[a].water[poolall[a].h0][poolall[a].w0] < 1)//几何中心不在工件内
 			{
 				(*it).type = Wrench;
+				counts[5]++;
 			}
 			else {//几何中心在工件内
 				state = 0;
-				//th = sqrt((poolall[a].edge[0] - poolall[a].h0) * (poolall[a].edge[0] - poolall[a].h0) + (poolall[a].edge[1] - poolall[a].w0) * (poolall[a].edge[1] - poolall[a].w0));
 				th = 0;
 				for (i = 0; i < poolall[a].edgenum; i++)
 				{
@@ -1743,15 +1787,54 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 						state++;
 					}
 				}
-				if (state < 100)//所有边缘点到Coin中心距离近似相等，抛除部分误差
+				if (state < 100) {//所有边缘点到Coin中心距离近似相等，抛除部分误差
 					(*it).type = Coin;
+					counts[0]++;
+				}
 				else {
 					(*it).type = Block;
+					counts[1]++;
 				}
 			}
 		}
+
+		int x0 = a < 10 ? 1000 : 1000 + 200;
+		int y0 = 20;
+		// 输出序号
+		CButton* p_No = new CButton();
+		ASSERT_VALID(p_No);
+		string no = to_string(a + 1);
+		CString cno;
+		cno = no.c_str();
+		p_No->Create(cno, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(x0 - 50, y0 + 20 * a, 10, 10), this, (1030 + a * 3)); //创建按钮
+
+		// 输出分类
+		CButton* p_Class = new CButton();
+		ASSERT_VALID(p_Class);
+		p_Class->Create(classes[(*it).type - 1], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON , CRect(x0, y0 + 20 * a, 10, 10), this, (1030 + a*3 + 1)); //创建按钮
+		//GetDlgItem(1049 + a * 3)->SetWindowTextW(classes[(*it).type - 1]);
+		
+		// 输出像素个数
+		CButton* p_Num = new CButton();
+		ASSERT_VALID(p_Num);
+		string str = to_string((*it).num);
+		CString cstr;
+		cstr = str.c_str();
+		p_No->Create(cstr, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(x0 + 50, y0 + 20 * a, 10, 10), this, (1030 + a*3 + 2)); //创建按钮
+		//GetDlgItem(1050 + a * 3)->SetWindowTextW(cstr);
 		a++;
 	}
+
+	//输出计数
+	string strings[6];
+	CString cstrings[6];
+	for (int i = 0; i < 6; i++)
+	{
+		strings[i] = to_string(counts[i]);
+		cstrings[i] = strings[i].c_str();
+		GetDlgItem(1011 + i)->SetWindowTextW(cstrings[i]);
+	}
+	
 	free(poolall);
 }
 

@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 extern char nums[10][25][15] = {
 	{ // 0
 		{0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0},

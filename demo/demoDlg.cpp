@@ -367,7 +367,7 @@ void CdemoDlg::Image_Gray()
 	{
 		for (j = 0; j < w; j++)
 		{
-			*pDst = 0.299 * *p + 0.587 * *(p + 1) + 0.114 * *(p + 2);
+			*pDst = (unsigned char)(0.299 * * p + 0.587 * *(p + 1) + 0.114 * *(p + 2));
 			*pDstd = *pDst;
 			pDst++;
 			pDstd++;
@@ -493,7 +493,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
 	int w, h;
-	int i, j, a, b, wh, count, count1, c, d;
+	int i, j, a, count, count1, c;
 	double sum = 0;
 	double sum1 = 0;
 	struct Pool1 pool;
@@ -502,7 +502,6 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	int state = 0;
 	int typenum = 1;
 	int found = 0;
-	int color;
 	int poolnum = 0;
 	struct Pool1* poolall = NULL;
 	int allnum = 0;
@@ -584,7 +583,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		}
 	}
 
-	poolnum = index.size();
+	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
 
 	for (a = 31; a < 45; a++)
@@ -661,7 +660,7 @@ void CdemoDlg::Dispool(vector<struct Pool1> index)
 	int poolnum = 0;
 	struct Pool1* poolall = NULL;
 
-	poolnum = index.size();
+	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
 	i = 0;
 	for (auto it = index.begin(); it != index.end(); it++)
@@ -715,8 +714,8 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 	unsigned char* p = (unsigned char*)m_imageDid.GetBits();
 	struct Pool1 pool;
 	int h, w, a, b;
-	int num = index.size() - 1;
-
+	int num = (int)(index.size() - 1);
+	
 	pool.symbel = index[num].symbel;
 	pool.water = (int**)malloc(h0 * sizeof(int*));
 	for (a = 0; a < h0; a++)
@@ -812,12 +811,12 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	struct Pool1* pcur = NULL;
-	int h, w, i ,j;
+	int h, w, i ;
 	int state;
 	int num, bar, poolnum;
 	auto it = index.begin();
 	struct Pool1* poolall = NULL;
-	poolnum = index.size() - 1;
+	poolnum = (int)(index.size()) - 1;
 	i = 0;
 	poolall = (struct Pool1*)malloc((index.size() - 1) * sizeof(struct Pool1));
 	for (it = index.begin(); (*it).symbel != pool->symbel; it++)
@@ -1040,7 +1039,7 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 	int m = 3, n = 3;
 	auto it = index.begin();
 	struct Pool1* poolall = NULL;
-	poolnum = index.size() - 1;
+	poolnum = (int)(index.size()) - 1;
 	i = 0;
 	poolall = (struct Pool1*)malloc((index.size() - 1) * sizeof(struct Pool1));
 	for (it = index.begin(); (*it).symbel != pool->symbel; it++)
@@ -1431,13 +1430,12 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 void CdemoDlg::Disedge(vector<struct Pool1> &index)
 {
 	unsigned char* p = (unsigned char*)m_image.GetBits();
-	int h, w, i, j, po, a, b;
-	int h0, w0;
+	int h, w, i, j, a, b;
 	int hmin, wmin, hmax, wmax;
 	int pointnum = 0, poolnum = 0;
 	struct Pool1* poolall = NULL;
 
-	poolnum = index.size();
+	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
 	i = 0;
 	for (auto it = index.begin(); it != index.end(); it++)
@@ -1548,7 +1546,7 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 
 void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 {
-	int i, j, a, b;
+	int i, a, b;
 	double th, distence, dmax, dmin;
 	int state;
 	int poolnum = 0;
@@ -1558,7 +1556,7 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 		L"硬币", L"积木", L"螺母", L"螺栓", L"螺钉", L"扳手"
 	};
 
-	poolnum = index.size();
+	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
 	i = 0;
 	for (auto it = index.begin(); it != index.end(); it++)

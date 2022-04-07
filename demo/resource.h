@@ -16,12 +16,14 @@
 #define endRecg                         1007
 #define picGray                         1009
 #define IDC_BUTTON1                     1010
+
 #define count_1                         1011
 #define count_2                         1012
 #define count_3                         1013
 #define count_4                         1014
 #define count_5                         1016
 #define count_6                         1017
+
 #define Class_1                         1018
 #define Class_2                         1019
 #define Class_3                         1020
@@ -42,26 +44,27 @@
 #define Class_18                        1035
 #define Class_19                        1036
 #define Class_20                        1037
-#define Class_21                        1038
-#define Class_22                        1039
-#define Class_23                        1040
-#define Class_24                        1041
-#define Class_25                        1042
-#define Class_26                        1043
-#define Class_27                        1044
-#define Class_28                        1045
-#define Class_29                        1046
-#define Class_30                        1047
-#define Class_31                        1048
-#define Class_32                        1049
-#define Class_33                        1050
-#define Class_34                        1051
-#define Class_35                        1052
-#define Class_36                        1053
-#define Class_37                        1054
-#define Class_38                        1055
-#define Class_39                        1056
-#define Class_40                        1057
+
+#define S_1                             1038
+#define S_2                             1039
+#define S_3                             1040
+#define S_4                             1041
+#define S_5                             1042
+#define S_6                             1043
+#define S_7                             1044
+#define S_8                             1045
+#define S_9                             1046
+#define S_10                            1047
+#define S_11                            1048
+#define S_12                            1049
+#define S_13                            1050
+#define S_14                            1051
+#define S_15                            1052
+#define S_16                            1053
+#define S_17                            1054
+#define S_18                            1055
+#define S_19                            1056
+#define S_20                            1057
 
 // Next default values for new objects
 // 

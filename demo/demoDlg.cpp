@@ -26,20 +26,20 @@ using namespace std;
 
 class CAboutDlg : public CDialogEx
 {
-public:
-	CAboutDlg();
+	public:
+		CAboutDlg();
 
-// 对话框数据
-#ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
-#endif
+	// 对话框数据
+	#ifdef AFX_DESIGN_TIME
+		enum { IDD = IDD_ABOUTBOX };
+	#endif
 
+		protected:
+		virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+
+	// 实现
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-
-// 实现
-protected:
-	DECLARE_MESSAGE_MAP()
+		DECLARE_MESSAGE_MAP()
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -78,7 +78,6 @@ BEGIN_MESSAGE_MAP(CdemoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_OpenCam, &CdemoDlg::OnBnClickedOpencam)
 	ON_BN_CLICKED(IDC_StartGrab, &CdemoDlg::OnBnClickedStartgrab)
 	ON_BN_CLICKED(IDC_CloseCam, &CdemoDlg::OnBnClickedClosecam)
-	ON_STN_CLICKED(pic, &CdemoDlg::OnStnClickedpic)
 	ON_BN_CLICKED(startRecg, &CdemoDlg::OnBnClickedstartrecg)
 	ON_BN_CLICKED(IDCANCEL, &CdemoDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(endRecg, &CdemoDlg::OnBnClickedendrecg)
@@ -210,22 +209,31 @@ void CdemoDlg::OnBnClickedOpencam()
 			MessageBox(_T("无法打开相机"), _T("提示"), MB_ICONWARNING);
 		return;
 	}
+
 	int w, h;
 	MVGetWidth(m_hCam, &w);
 	MVGetHeight(m_hCam, &h);
 	MVGetPixelFormat(m_hCam, &m_PixelFormat);
+	// 实例化图像
 	m_image.CreateByPixelFormat(w, h, m_PixelFormat);
 	m_imageGray.CreateByPixelFormat(w, h, PixelFormat_Mono8); // 灰度
 	m_imageDid.CreateByPixelFormat(w, h, PixelFormat_Mono8); // 灰度
 	m_imageDid1.CreateByPixelFormat(w, h, PixelFormat_Mono8); // 灰度
+
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(true);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
 }
 
+/*!
+*  \brief 在pic控件中显示图像m_image
+*  \param [in]	m_image
+*  \retval  	void
+*/
 void CdemoDlg::DrawImage()
 {
 	CRect rct;
+	// 获得pic窗口长宽
 	GetDlgItem(pic)->GetClientRect(&rct);
 	int dstW = rct.Width();
 	int dstH = rct.Height();
@@ -259,6 +267,9 @@ int __stdcall StreamCB(MV_IMAGE_INFO* pInfo, ULONG_PTR nUserVal)
 	return (pDlg->OnStreamCB(pInfo));
 }
 
+/*!
+*  \brief “开始采集”点击事件
+*/
 void CdemoDlg::OnBnClickedStartgrab()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -271,7 +282,7 @@ void CdemoDlg::OnBnClickedStartgrab()
 		MVSetTriggerMode(m_hCam, TriggerMode_Off);
 		Sleep(100);
 	}
-	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this);//采集图像
+	MVStartGrab(m_hCam, (MVStreamCB)StreamCB, (ULONG_PTR)this); // 采集图像
 	m_bRun = true;
 	GetDlgItem(IDC_OpenCam)->EnableWindow(false);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
@@ -279,7 +290,9 @@ void CdemoDlg::OnBnClickedStartgrab()
 
 }
 
-// “关闭相机”点击事件
+/*!
+*  \brief “关闭相机”点击事件
+*/
 void CdemoDlg::OnBnClickedClosecam()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -289,12 +302,6 @@ void CdemoDlg::OnBnClickedClosecam()
 	GetDlgItem(IDC_OpenCam)->EnableWindow(true);
 	GetDlgItem(IDC_StartGrab)->EnableWindow(false);
 	GetDlgItem(IDC_CloseCam)->EnableWindow(false);
-}
-
-
-void CdemoDlg::OnStnClickedpic()
-{
-	// TODO: 在此添加控件通知处理程序代码
 }
 
 void CdemoDlg::OnClose()
@@ -308,13 +315,25 @@ void CdemoDlg::OnClose()
 }
 
 
-// “开始识别”点击事件
+/*!
+*  \brief “开始识别”点击事件
+*/
 void CdemoDlg::OnBnClickedstartrecg()
 {
 	Recgon = 1;
 }
 
+
+/**
+* @brief 清空计数、类别、面积显示
+*/
 void CdemoDlg::reset() {
+	for (int i = 0; i < 7; i++)
+	{
+		if (i == 4)
+			i++;
+		GetDlgItem(1011 + i)->SetWindowTextW(L"");
+	}
 	for (int i = 0; i < 20; i++)
 	{
 		GetDlgItem(1018 + i)->SetWindowTextW(L"");
@@ -322,21 +341,23 @@ void CdemoDlg::reset() {
 	}
 }
 
+/**
+* @brief 
+*/
 void CdemoDlg::Change_Image()
 {
 	vector<struct Pool1> index;
 
 	Wrong = 0;
 	Image_Gray();
-	if (Watershed(index))//获取单一工件图链表
+	if (Watershed(index)) // 获取单一工件图链表
 	{
-		Disedge(index);//在原图上标记边界
-		JudgePiece(index);//判断工件类型
+		Disedge(index); // 在原图上标记边界
+		JudgePiece(index); // 判断工件类型
 		freepool(index);
 		Wrong = 0;
 	}
 }
-
 
 void CdemoDlg::OnBnClickedCancel()
 {
@@ -344,7 +365,9 @@ void CdemoDlg::OnBnClickedCancel()
 	CDialogEx::OnCancel();
 }
 
-
+/**
+* @brief 将原图像转换成灰度图
+*/
 void CdemoDlg::Image_Gray()
 {
 	int w;
@@ -352,20 +375,13 @@ void CdemoDlg::Image_Gray()
 	unsigned char* p = (unsigned char*)m_image.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDstd = (unsigned char*)m_imageDid.GetBits();
-	double sum = 0;
-	double sum1 = 0;
-	double count = 0;
-	int i, j;
 
 	w = m_image.GetWidth();
 	h = m_image.GetHeight();
-	p = (unsigned char*)m_image.GetBits();
 
-	ofstream out("output.txt");
-
-	for (i = 0; i < h; i++)
+	for (int i = 0; i < h; i++)
 	{
-		for (j = 0; j < w; j++)
+		for (int j = 0; j < w; j++)
 		{
 			*pDst = (unsigned char)(0.299 * * p + 0.587 * *(p + 1) + 0.114 * *(p + 2));
 			*pDstd = *pDst;
@@ -374,16 +390,18 @@ void CdemoDlg::Image_Gray()
 			p += 3;
 		}
 	}
+
 	pDst = (unsigned char*)m_imageGray.GetBits();
 	pDstd = (unsigned char*)m_imageDid.GetBits();
-	for (i = 0; i < w; i++)
+
+	for (int i = 0; i < w; i++)
 	{
 		*(pDst + i) = 255;
-		*(pDst + (h - 1)*w + i) = 255;
+		*(pDst + (h - 1) * w + i) = 255;
 		*(pDstd + i) = 255;
 		*(pDstd + (h - 1) * w + i) = 255;
 	}
-	for (i = 0; i < h; i++)
+	for (int i = 0; i < h; i++)
 	{
 		*(pDst + i * w) = 255;
 		*(pDst + i * w + w - 1) = 255;
@@ -393,19 +411,28 @@ void CdemoDlg::Image_Gray()
 }
 
 
-// 腐蚀
+/**
+* @brief 腐蚀
+* @param [in] num 腐蚀次数
+* @param [in] th  阈值
+* @return		  处理后的图像信息在m_imageDid和m_imageDid1
+* @remarks		  在灰度图上进行
+* @todo			  第一个循环是否可以删掉？
+*/
 void CdemoDlg::Corrode(int num, int th)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
+	unsigned char* pool = (unsigned char*)m_imageDid1.GetBits();
 	unsigned char* pcur = NULL;
-	unsigned char* pool = (unsigned char*)m_imageDid1.GetBits();;
 	int i, j, n;
 	int w, h;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
+	// @todo 这个循环是否可以删掉，后面也赋值了的
+	// 给m_imageDid1赋初值
 	for (i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++)
@@ -413,9 +440,10 @@ void CdemoDlg::Corrode(int num, int th)
 			*(pool + i * w + j) = *(p + i * w + j);
 		}
 	}
-
+	
 	if (num > 0)
 	{
+		// 进行num次腐蚀
 		for (n = 0; n < num; n++)
 		{
 			for (i = 2; i < h - 2; i++)
@@ -423,6 +451,8 @@ void CdemoDlg::Corrode(int num, int th)
 				for (j = 2; j < w - 2; j++)
 				{
 					pcur = pool + i * w + j;
+					// 如果某点的8邻域内有任何一个像素的灰度值大于th，则将该点置成背景色(白色)
+					// 处理后的图像为m_imageDid
 					if (*(pcur - 1) > th || *(pcur + 1) > th ||
 						*(pcur - w) > th || *(pcur + w) > th ||
 						*(pcur - w - 1) > th || *(pcur - w + 1) > th ||
@@ -432,6 +462,7 @@ void CdemoDlg::Corrode(int num, int th)
 					}
 				}
 			}
+			// 修改m_imageDid1
 			for (i = 0; i < h; i++)
 			{
 				for (j = 0; j < w; j++)
@@ -443,7 +474,12 @@ void CdemoDlg::Corrode(int num, int th)
 	}
 }
 
-// 膨胀
+/**
+* @brief 膨胀
+* @return		  处理后的图像信息在m_imageDid
+* @remarks		  在灰度图m_imageGray上进行
+* @todo			  待完善给定处理次数和可变阈值
+*/
 void CdemoDlg::Expand()
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
@@ -460,7 +496,8 @@ void CdemoDlg::Expand()
 		for (j = 2; j < w - 2; j++)
 		{
 			pcur = p + i * w + j;
-
+			// 如果某点的16邻域内有任何一个像素的灰度值为前景色，则将该点置成前景色(黑色)
+			// 处理后的图像为m_imageDid
 			if (*(pcur - 1) == 0 || *(pcur + 1) == 0 ||
 				*(pcur - w) == 0 || *(pcur + w) == 0 ||
 				*(pcur - w - 1) == 0 || *(pcur - w + 1) == 0 ||
@@ -474,8 +511,11 @@ void CdemoDlg::Expand()
 			}
 		}
 	}
+
 	p = (unsigned char*)m_imageGray.GetBits();
 	pDst = (unsigned char*)m_imageDid.GetBits();
+
+	// 同时修改m_imageGray
 	for (i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++)
@@ -487,7 +527,11 @@ void CdemoDlg::Expand()
 	}
 }
 
-//Watershed基于区域生长的分水岭算法
+/**
+* @brief 基于区域生长的分水岭算法
+* @param [in] &index
+* @todo		注释没写完呢
+*/
 int CdemoDlg::Watershed(vector<struct Pool1> &index)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
@@ -650,7 +694,11 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	return 1;
 }
 
-//显示水池
+/**
+* @brief 显示分割后的水池
+* @param [in] index
+* @return		不同水池绘制不同的颜色
+*/
 void CdemoDlg::Dispool(vector<struct Pool1> index)
 {
 	unsigned char* p = (unsigned char*)m_image.GetBits();
@@ -691,7 +739,11 @@ void CdemoDlg::Dispool(vector<struct Pool1> index)
 	free(poolall);
 }
 
-//删库跑路
+/**
+* @brief 删库跑路
+* @param [in] index
+* @todo	注释没写完呢
+*/
 void CdemoDlg::freepool(vector<struct Pool1> index)
 {
 	int i, h;
@@ -708,7 +760,16 @@ void CdemoDlg::freepool(vector<struct Pool1> index)
 	}
 }
 
-//一次增长获得水洼
+/**
+* @brief 一次增长获得水洼
+* @param [in] h1
+* @param [in] h2
+* @param [in] &index
+* @param [in] h0
+* @param [in] wo
+* @param [in] th		阈值
+* @todo	注释没写完呢
+*/
 void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, int th)
 {
 	unsigned char* p = (unsigned char*)m_imageDid.GetBits();
@@ -806,7 +867,18 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 	index.push_back(pool);
 }
 
-//用于循环增长水平面稳定获得水池
+/**
+* @brief 循环增长水平面稳定获得水池
+* @param [in] h1
+* @param [in] h2
+* @param [in] &index
+* @param [in] h0
+* @param [in] wo
+* @param [in] *pool
+* @param [in] Th		阈值
+* @param [in] wh
+* @todo	注释没写完呢
+*/
 void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
@@ -1028,20 +1100,42 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 	free(poolall);
 }
 
+/**
+* @brief SUSAN算子边缘提取
+* @param [in] h1		像素点所在行
+* @param [in] h2		像素点所在列
+* @param [in] &index	工件图像链表指针
+* @param [in] h0		图像长
+* @param [in] wo		图像宽
+* @param [in] *pool		当前的工件结构体
+* @param [in] Th		阈值
+* @param [in] wh		该工件内部点的填充值
+* @return				边缘点坐标全部存于在pool->edge[]
+*						同时计算出几何中心、最大最小坐标值
+* @remarks				分别在分割后的图像上进行
+*/
 void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	struct Pool1* pcur = NULL;
 	int h, w, i, j;
+	// state: 标识是否包含于其他工件
+	// susan: susan算子值
 	int state, susan;
-	int num, bar;
-	int backnum, poolnum;
+	int poolnum;// 工件总数
+	// 模板大小为3*3
 	int m = 3, n = 3;
+	// 指向第一个工件
 	auto it = index.begin();
+	// 数组：存放所有工件结构体
 	struct Pool1* poolall = NULL;
+
 	poolnum = (int)(index.size()) - 1;
-	i = 0;
 	poolall = (struct Pool1*)malloc((index.size() - 1) * sizeof(struct Pool1));
+	i = 0;
+
+	// @todo 两个循环可合并？直接从begin到end
+	// 给poolall赋值
 	for (it = index.begin(); (*it).symbel != pool->symbel; it++)
 	{
 		poolall[i] = (*it);
@@ -1057,25 +1151,36 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 	pool->water[h1][w1] = wh;
 	pool->wmin = pool->wmax = w1;
 	pool->hmin = pool->hmin = h1;
+
+	// vector obj: 用于存放需要被判断的点坐标
 	vector<int>obj;
 	obj.push_back(h1);
 	obj.push_back(w1);
+
+	// num面积，edgenum边缘点个数，h0几何中心纵坐标，w0几何中心横坐标
 	pool->num = 1;
 	pool->edgenum = 0;
 	pool->h0 = 0;
 	pool->w0 = 0;
+
+	// 循环结束条件：obj内已无需要被判断的点坐标
 	while (1)
 	{
+		// 取出这次需要判断的点坐标
 		w = obj.back();
 		obj.pop_back();
 		h = obj.back();
 		obj.pop_back();
-		num = 0;
-		bar = 0;
-		backnum = 0;
+
+		// 对当前点(w,h)的8邻域进行判断，一定程度上保证边缘点连续
+		// 且不需要遍历整个图，减小计算量
+		
+		// 八邻域 - 1
+		// 该点还没有被归为当前工件内部，且灰度值小于阈值(前景)
 		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
 		{
 			state = 1;
+			// 如果当前坐标在其他工件内部，则不进行接下来的边缘检测
 			for (i = 0; i < poolnum; i++)
 			{
 				if (poolall[i].water[h - 1][w - 1] >= 1)
@@ -1084,13 +1189,14 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 					break;
 				}
 			}
+			// 在当前工件内部，进行边缘检测
 			if (state == 1) {
-				num++;
 				pool->water[h - 1][w - 1] = wh;
 				pool->num++;
 				obj.push_back(h - 1);
 				obj.push_back(w - 1);
 				susan = 0;
+				// susan算子
 				for (i = 0; i < m; i++)
 				{
 					for (j = 0; j < n; j++)
@@ -1099,12 +1205,15 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 					}
 				}
 				susan = 9 - susan;
+				// 如果susan值大于等于1，则判断为边缘
 				if (susan >= 1)
 				{
+					// 记录边缘点坐标
 					pool->edge[pool->edgenum * 2] = h - 1;
 					pool->edge[pool->edgenum * 2 + 1] = w - 1;
 					pool->edgenum++;
 				}
+				// 修改几何中心、最大最小坐标值
 				pool->h0 += h - 1;
 				pool->w0 += w - 1;
 				if (pool->wmin > w - 1) pool->wmin = w - 1;
@@ -1112,10 +1221,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h - 1;
 				if (pool->hmax < h - 1) pool->hmax = h - 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 八邻域 - 2
 		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
 		{
 			state = 1;
@@ -1128,7 +1236,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h - 1][w] = wh;
 				pool->num++;
 				obj.push_back(h - 1);
@@ -1155,10 +1262,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h - 1;
 				if (pool->hmax < h - 1) pool->hmax = h - 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 八邻域 - 3
 		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
 		{
 			state = 1;
@@ -1171,7 +1277,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h - 1][w + 1] = wh;
 				pool->num++;
 				obj.push_back(h - 1);
@@ -1198,11 +1303,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h - 1;
 				if (pool->hmax < h - 1) pool->hmax = h - 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
 
+		// 八邻域 - 4
 		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
 		{
 			state = 1;
@@ -1215,7 +1318,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h][w - 1] = wh;
 				pool->num++;
 				obj.push_back(h);
@@ -1242,10 +1344,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h;
 				if (pool->hmax < h - 1) pool->hmax = h;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 八邻域 - 5
 		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
 		{
 			state = 1;
@@ -1258,7 +1359,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h][w + 1] = wh;
 				pool->num++;
 				obj.push_back(h);
@@ -1285,11 +1385,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h;
 				if (pool->hmax < h - 1) pool->hmax = h;
 			}
-			else {
-				bar = 1;
-			}
 		}
 
+		// 八邻域 - 6
 		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
 		{
 			state = 1;
@@ -1302,7 +1400,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h + 1][w - 1] = wh;
 				pool->num++;
 				obj.push_back(h + 1);
@@ -1329,10 +1426,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h + 1;
 				if (pool->hmax < h - 1) pool->hmax = h + 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 八邻域 - 7
 		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
 		{
 			state = 1;
@@ -1345,7 +1441,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h + 1][w] = wh;
 				pool->num++;
 				obj.push_back(h + 1);
@@ -1372,10 +1467,9 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h + 1;
 				if (pool->hmax < h - 1) pool->hmax = h + 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 八邻域 - 8
 		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
 		{
 			state = 1;
@@ -1388,7 +1482,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				}
 			}
 			if (state == 1) {
-				num++;
 				pool->water[h + 1][w + 1] = wh;
 				pool->num++;
 				obj.push_back(h + 1);
@@ -1415,28 +1508,40 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				if (pool->hmin > h - 1) pool->hmin = h + 1;
 				if (pool->hmax < h - 1) pool->hmax = h + 1;
 			}
-			else {
-				bar = 1;
-			}
 		}
+
+		// 全部点都已经检测完成，退出循环
 		if (obj.empty())
 			break;
 	}
+
 	free(poolall);
+	// 计算出几何中心
 	pool->h0 /= pool->num;
 	pool->w0 /= pool->num;
 }
 
+/**
+* @brief 框出工件，并输出工件序号、其他几何特征
+* @param [in] &index	工件图像链表指针
+* @return				
+* @remarks				在原图上进行
+*/
 void CdemoDlg::Disedge(vector<struct Pool1> &index)
 {
 	unsigned char* p = (unsigned char*)m_image.GetBits();
-	int h, w, i, j, a, b;
+	int h, w, i, j, a, b; // b: 工件序号
+	// 横纵坐标最大最小值
 	int hmin, wmin, hmax, wmax;
+	// pointnum: 
+	// poolnum: 水池总数
 	int pointnum = 0, poolnum = 0;
+	// 数组：存放所有工件结构体
 	struct Pool1* poolall = NULL;
 
 	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+
 	i = 0;
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
@@ -1450,12 +1555,14 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 	b = 0;
 	for (a = 0; a < poolnum; a++)
 	{
+		// 过滤掉过度分割的小区域
 		if (poolall[a].num > 1000)
 		{
 			pointnum = poolall[a].edgenum;
 			hmin = hmax = poolall[a].edge[0];
 			wmin = wmax = poolall[a].edge[1];
-			//画框
+
+			// 画矩形框，坐标为hmin、hmax、wmin、wmax
 			for (j = poolall[a].wmin; j <= poolall[a].wmax; j++)
 			{
 				for (i = 0; i < 3; i++)
@@ -1486,7 +1593,8 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 					}
 				}
 			}
-			//画几何中心
+			
+			// 画几何中心
 			for (i = 0; i < 2; i++)
 			{
 				for (j = 0; j < 2; j++)
@@ -1497,9 +1605,10 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 				}
 			}
 
-			int x0 = (poolall[a].hmin - 30) > 0 ? poolall[a].hmin - 30 : 0;
-			int y0 = (poolall[a].wmin + 15) < w ? poolall[a].wmin : w - 16;
-			// 标数字
+			// 标数字，位于矩形框的左上角
+			int x0 = (poolall[a].hmin - 30) > 0 ? poolall[a].hmin - 30 : 0; // 基准横坐标，防溢出
+			int y0 = (poolall[a].wmin + 15) < w ? poolall[a].wmin : w - 16; // 基准纵坐标，防溢出
+			// 序号小于10
 			if ((b + 1) < 10) {
 				for (i = 0; i < 25; i++)
 				{
@@ -1512,15 +1621,15 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 					}
 				}
 			}
-			else if (b + 1 < 20)
+			else if (b + 1 < 20)// 序号小于20
 			{
-				int shiwei = 1; // 十位数
-				int gewei = b + 1 - 10; // 个位数
-				y0 = (wmin + 15 + 20) < w ? wmin : w - 36;
+				int tens = 1; // 十位数
+				int units = b + 1 - 10; // 个位数
+				y0 = (wmin + 15 + 20) < w ? wmin : w - 36;// 防溢出
 				for (i = 0; i < 25; i++)
 				{
 					for (j = 0; j < 15; j++) {
-						if (nums[shiwei][i][j] == 1) {
+						if (nums[tens][i][j] == 1) {
 							*(p + (x0 + i) * w * 3 + (y0 + j) * 3) = 255;
 							*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 1) = 255;
 							*(p + (x0 + i) * w * 3 + (y0 + j) * 3 + 2) = 255;
@@ -1530,7 +1639,7 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 				for (i = 0; i < 25; i++)
 				{
 					for (j = 0; j < 15; j++) {
-						if (nums[gewei][i][j] == 1) {
+						if (nums[units][i][j] == 1) {
 							*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3) = 255;
 							*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3 + 1) = 255;
 							*(p + (x0 + i) * w * 3 + (y0 + 20 + j) * 3 + 2) = 255;
@@ -1544,13 +1653,23 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 	free(poolall);
 }
 
+/**
+* @brief 判断工件类别
+* @param [in] &index	工件图像链表指针
+* @return
+* @remarks				分别在原图上进行
+*/
 void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 {
 	int i, a, b;
-	double th, distence, dmax, dmin;
+	// th: 阈值
+	// distance: 距离
+	// dmax: 距离最大值
+	// dmin: 距离最小值
+	double th, distance, dmax, dmin;
 	int state;
 	int poolnum = 0;
-	struct Pool1* poolall = NULL;
+	struct Pool1* poolall = NULL;// 数组：存放所有工件结构体
 	int counts[6] = {0}; // 各类别计数 0:硬币 1:积木 2:螺母 3:螺栓 4:螺钉 5:扳手
 	wchar_t classes[6][10] = {
 		L"硬币", L"积木", L"螺母", L"螺栓", L"螺钉", L"扳手"
@@ -1558,6 +1677,7 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 
 	poolnum = (int)(index.size());
 	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+
 	i = 0;
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
@@ -1567,71 +1687,84 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 
 	a = 0;
 	b = 0;
-	reset();
+	reset(); // 判别之前清空输出显示
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
+		// 滤掉过度分割的小区域
 		if (poolall[b].num > 1000)
 		{
-			if (poolall[b].num < Sth)//面积小于10000
+			if (poolall[b].num < Sth) // 面积小于阈值，该分支只有螺母、螺钉、螺栓
 			{
-				if (poolall[b].water[poolall[b].h0][poolall[b].w0] < 1)//几何中心不在工件内
+				// 几何中心不在工件上，为螺母
+				if (poolall[b].water[poolall[b].h0][poolall[b].w0] < 1)
 				{
 					(*it).type = Nut;
 					counts[2]++;
 				}
-				else { //几何中心在工件内
+				// 几何中心在工件上，为螺钉或螺栓
+				else {
 					dmin = dmax = sqrt((poolall[b].edge[0] - poolall[b].h0) * (poolall[b].edge[0] - poolall[b].h0) + (poolall[b].edge[1] - poolall[b].w0) * (poolall[b].edge[1] - poolall[b].w0));
+					// 计算 几何中心到边缘点的 最大距离和最小距离
 					for (i = 1; i < poolall[b].edgenum; i++)
 					{
-						distence = sqrt((poolall[b].edge[i * 2] - poolall[b].h0) * (poolall[b].edge[i * 2] - poolall[b].h0) + (poolall[b].edge[i * 2 + 1] - poolall[b].w0) * (poolall[b].edge[i * 2 + 1] - poolall[b].w0));
-						if (distence < dmin) dmin = distence;
-						if (distence > dmax) dmax = distence;
+						distance = sqrt((poolall[b].edge[i * 2] - poolall[b].h0) * (poolall[b].edge[i * 2] - poolall[b].h0) + (poolall[b].edge[i * 2 + 1] - poolall[b].w0) * (poolall[b].edge[i * 2 + 1] - poolall[b].w0));
+						if (distance < dmin) dmin = distance;
+						if (distance > dmax) dmax = distance;
 					}
-					if (dmax / dmin > 6) {//长宽比小于阈值为螺栓
-						(*it).type = Bolt;
+					// 长宽比(最大与最小距离之比)小于阈值为螺栓
+					// 螺栓更粗，dmin大，故dmax/dmin比较小
+					// @todo 为什么代码跟逻辑相反？
+					if (dmax / dmin > 6) {
+						(*it).type = Bolt; // 螺栓
 						counts[3]++;
 					}
 					else {
-						(*it).type = Screw;
+						(*it).type = Screw; // 螺钉
 						counts[4]++;
 					}
 				}
 			}
-			else {//面积大于10000
-				if (poolall[b].water[poolall[b].h0][poolall[b].w0] < 1)//几何中心不在工件内
+			else { // 面积大于阈值，该分支只有L杆、硬币、积木
+
+				// 几何中心不在工件上，为L杆
+				if (poolall[b].water[poolall[b].h0][poolall[b].w0] < 1)
 				{
 					(*it).type = Wrench;
 					counts[5]++;
 				}
-				else {//几何中心在工件内
+				else { // 几何中心在工件上，为硬币或积木
 					state = 0;
 					th = 0;
+					// 所有边缘点到几何中心距离的平均值
 					for (i = 0; i < poolall[b].edgenum; i++)
 					{
-						th += sqrt((poolall[b].edge[i * 2] - poolall[b].h0) * (poolall[b].edge[i * 2] - poolall[b].h0) + (poolall[b].edge[i * 2 + 1] - poolall[b].w0) * (poolall[b].edge[i * 2 + 1] - poolall[b].w0));
+						th += pow(poolall[b].edge[i * 2] - poolall[b].h0, 2) + pow(poolall[b].edge[i * 2 + 1] - poolall[b].w0, 2);
 					}
 					th /= poolall[b].edgenum;
+					// 边缘点到几何中心距离 与 均值 相差较大的点个数
 					for (i = 0; i < poolall[b].edgenum; i++)
 					{
-						distence = sqrt((poolall[b].edge[i * 2] - poolall[b].h0) * (poolall[b].edge[i * 2] - poolall[b].h0) + (poolall[b].edge[i * 2 + 1] - poolall[b].w0) * (poolall[b].edge[i * 2 + 1] - poolall[b].w0));
-						if (distence < 0.9 * th || distence > 1.1 * th)
+						distance = pow(poolall[b].edge[i * 2] - poolall[b].h0,2) + pow(poolall[b].edge[i * 2 + 1] - poolall[b].w0,2);
+						if (distance < 0.9 * th || distance > 1.1 * th)
 						{
 							state++;
 						}
 					}
-					if (state < 150) {//所有边缘点到Coin中心距离近似相等，抛除部分误差
+					// 所有边缘点到几何中心距离近似相等，为硬币
+					if (state < 150) {
 						(*it).type = Coin;
 						counts[0]++;
 					}
-					else {
+					else { // 否则为积木
 						(*it).type = Block;
 						counts[1]++;
 					}
 				}
 			}
 
+			// 输出当前工件的类别
 			GetDlgItem(1018 + a)->SetWindowTextW(classes[(*it).type - 1]);
-
+			// 输出当前工件的面积
 			string str = to_string((*it).num);
 			CString cstr;
 			cstr = str.c_str();
@@ -1641,7 +1774,7 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 		b++;
 	}
 
-	//输出计数
+	//输出各类别计数
 	string strings[6];
 	CString cstrings[6];
 	a = 0;
@@ -1658,10 +1791,11 @@ void CdemoDlg::JudgePiece(vector<struct Pool1> &index)
 	free(poolall);
 }
 
-
+/**
+* @brief “停止识别”点击事件
+*/
 void CdemoDlg::OnBnClickedendrecg()
 {
-	// TODO: 在此添加控件通知处理程序代码
 	Recgon = 0;
 	reset();
 }

@@ -6,7 +6,6 @@
 #include "demo.h"
 #include "demoDlg.h"
 #include "afxdialogex.h"
-#include "digital.h"
 #include "disNums.h"
 #include <malloc.h>
 #include <iostream>
@@ -417,7 +416,6 @@ void CdemoDlg::Image_Gray()
 * @param [in] th  阈值
 * @return		  处理后的图像信息在m_imageDid和m_imageDid1
 * @remarks		  在灰度图上进行
-* @todo			  第一个循环是否可以删掉？
 */
 void CdemoDlg::Corrode(int num, int th)
 {
@@ -431,7 +429,6 @@ void CdemoDlg::Corrode(int num, int th)
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
-	// @todo 这个循环是否可以删掉，后面也赋值了的
 	// 给m_imageDid1赋初值
 	for (i = 0; i < h; i++)
 	{
@@ -480,49 +477,56 @@ void CdemoDlg::Corrode(int num, int th)
 * @remarks		  在灰度图m_imageGray上进行
 * @todo			  待完善给定处理次数和可变阈值
 */
-void CdemoDlg::Expand()
+void CdemoDlg::Expand(int num, int th)
 {
 	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
 	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
-	unsigned char* pcur;
-	int i, j;
+	unsigned char* pool = (unsigned char*)m_imageDid1.GetBits();
+	unsigned char* pcur = NULL;
+	int i, j, n;
 	int w, h;
 
 	w = m_imageGray.GetWidth();
 	h = m_imageGray.GetHeight();
 
-	for (i = 2; i < h - 2; i++)
-	{
-		for (j = 2; j < w - 2; j++)
-		{
-			pcur = p + i * w + j;
-			// 如果某点的16邻域内有任何一个像素的灰度值为前景色，则将该点置成前景色(黑色)
-			// 处理后的图像为m_imageDid
-			if (*(pcur - 1) == 0 || *(pcur + 1) == 0 ||
-				*(pcur - w) == 0 || *(pcur + w) == 0 ||
-				*(pcur - w - 1) == 0 || *(pcur - w + 1) == 0 ||
-				*(pcur + w - 1) == 0 || *(pcur + w + 1) == 0 ||
-				*(pcur - 2) == 0 || *(pcur + 2) == 0 ||
-				*(pcur - 2 * w) == 0 || *(pcur + 2 * w) == 0 ||
-				*(pcur - w - 2) == 0 || *(pcur - w + 2) == 0 ||
-				*(pcur + w - 2) == 0 || *(pcur + w + 2) == 0)
-			{
-				*(pDst + i * w + j) = 0;
-			}
-		}
-	}
-
-	p = (unsigned char*)m_imageGray.GetBits();
-	pDst = (unsigned char*)m_imageDid.GetBits();
-
-	// 同时修改m_imageGray
+	// 给m_imageDid1赋初值
 	for (i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++)
 		{
-			*p = *pDst;
-			pDst++;
-			p++;
+			*(pool + i * w + j) = *(p + i * w + j);
+		}
+	}
+
+	if (num > 0)
+	{
+		// 进行num次腐蚀
+		for (n = 0; n < num; n++)
+		{
+			for (i = 2; i < h - 2; i++)
+			{
+				for (j = 2; j < w - 2; j++)
+				{
+					pcur = pool + i * w + j;
+					// 如果某点的8邻域内有任何一个像素的灰度值大于th，则将该点置成背景色(白色)
+					// 处理后的图像为m_imageDid
+					if (*(pcur - 1) < th || *(pcur + 1) < th ||
+						*(pcur - w) < th || *(pcur + w) < th ||
+						*(pcur - w - 1) < th || *(pcur - w + 1) < th ||
+						*(pcur + w - 1) < th || *(pcur + w + 1) < th)
+					{
+						*(pDst + i * w + j) = th;
+					}
+				}
+			}
+			// 修改m_imageDid1
+			for (i = 0; i < h; i++)
+			{
+				for (j = 0; j < w; j++)
+				{
+					*(pool + i * w + j) = *(pDst + i * w + j);
+				}
+			}
 		}
 	}
 }
@@ -530,24 +534,27 @@ void CdemoDlg::Expand()
 /**
 * @brief 基于区域生长的分水岭算法
 * @param [in] &index
-* @todo		注释没写完呢
+* @param index 用于存储找到的每一个工件的结构体并回传
+* @return 返回说明
+*     0 fail 算法出错
+*     1 succeed 算法运行完成
 */
-int CdemoDlg::Watershed(vector<struct Pool1> &index)
+int CdemoDlg::Watershed(vector<struct Pool1>& index)
 {
-	unsigned char* p = (unsigned char*)m_imageGray.GetBits();
-	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();
-	int w, h;
-	int i, j, a, count, count1, c;
-	double sum = 0;
+	unsigned char* p = (unsigned char*)m_imageGray.GetBits();//原灰度图
+	unsigned char* pDst = (unsigned char*)m_imageDid.GetBits();//已经腐蚀的灰度图
+	int w, h;//灰度图的长和宽
+	int i, j, a, b, wh, count, count1, c, d;//循环计数变量
+	double sum = 0;//像素平均值
 	double sum1 = 0;
-	struct Pool1 pool;
+	struct Pool1 pool;//临时保存新发现的工件
 	struct Pool1* pcur = NULL;
 	struct Pool1* belong = NULL;
 	int state = 0;
-	int typenum = 1;
-	int found = 0;
-	int poolnum = 0;
-	struct Pool1* poolall = NULL;
+	int typenum = 1;//记录发现的工件序号
+	int found = 0;//记录寻找种子时是否发现种子
+	int poolnum = 0;//记录找到的工件个数
+	struct Pool1* poolall = NULL;//用于保存从向量中取出的记录工件的结构体
 	int allnum = 0;
 
 	w = m_imageGray.GetWidth();
@@ -555,6 +562,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 
 	p = (unsigned char*)m_imageGray.GetBits();
 
+	//求灰度图的像素平均值
 	count = w * h;
 	for (i = 0; i < count; i++)
 	{
@@ -565,6 +573,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 	count = w * h;
 	count1 = 0;
 	p = (unsigned char*)m_imageGray.GetBits();
+	//求平均值以下的像素点的平均值
 	for (i = 0; i < count; i++)
 	{
 		if (*p < (unsigned char)sum)
@@ -574,19 +583,22 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		}
 		p++;
 	}
+	//对图片进行腐蚀处理
 	Corrode(4, 40);
 	sum1 = sum1 / count1;
 	pDst = (unsigned char*)m_imageDid.GetBits();
+	//遍历灰度图，寻找阈值以下未生长的像素点作为种子，对满足阈值的邻接像素点生长存储起来
 	while (1)
 	{
-		found = 0;
-		for (i = 100; i < h - 100; i++)
+		found = 0;//标志未找到种子，循环中未找到种子则退出循环
+		for (i = 100; i < h - 100; i++)//将边缘像素点过滤掉，防止图片的黑色边框影响判断
 		{
 			for (j = 100; j < w - 100; j++)
 			{
-				if (*(pDst + i * w + j) < 25)
+				if (*(pDst + i * w + j) < 25)//若找到满足阈值条件的像素点
 				{
 					state = 0;
+					//遍历每一个工件图像，判断像素点是否已经被生长
 					for (auto it = index.begin(); it != index.end(); ++it)
 					{
 						if ((*it).water[i][j] == 1)
@@ -594,29 +606,30 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 							state++;
 						}
 					}
-					if (state == 0)//未生长
+					if (state == 0)//若像素点未生长
 					{
 						allnum++;
-						if (allnum > 25)
+						if (allnum > 25)//若找到的工件数超过25则跳出算法，认为图像存在问题
 						{
 							freepool(index);
 							index.swap(vector<struct Pool1>());
 							Wrong = 1;
-							return 0;
+							return 0;//算法出错
 						}
-						pool.symbel = typenum;
+						pool.symbel = typenum;//初始化工件存储结构体
 						typenum++;
-						index.push_back(pool);
-						grow(i, j, index, h, w, 30);
-						found = 1;
+						index.push_back(pool);//将新的工件推入向量中存储
+						grow(i, j, index, h, w, 30);//对找到的种子进行生长
+						found = 1;//标志已找到种子
 					}
 				}
 			}
 		}
-		if (found == 0)
+		if (found == 0)//若未找到种子，退出循环
 			break;
 	}
 
+	//若发现有工件面积大于阈值，则算法报错，图像存在问题
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
 		if ((*it).num > 100000)
@@ -627,19 +640,20 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		}
 	}
 
-	poolnum = (int)(index.size());
-	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));
+	poolnum = index.size();//发现的工件数量
+	poolall = (struct Pool1*)malloc(poolnum * sizeof(struct Pool1));//开辟空间用于保存工件结构体
 
+	//循环生长模拟水位上涨，每次循环根据新的阈值对工件区域重新生长，从而扩大工件范围，当两个水池相遇溢出时则筑防水坝，从而分割工件
 	for (a = 31; a < 45; a++)
 	{
 		c = 0;
-		for (auto it1 = index.begin(); it1 != index.end(); it1++)
+		for (auto it1 = index.begin(); it1 != index.end(); it1++)//取出向量中的结构体
 		{
 			poolall[c] = (*it1);
 			c++;
 		}
 		c = 0;
-		for(auto it = index.begin(); it != index.end(); it++)
+		for (auto it = index.begin(); it != index.end(); it++)
 		{
 			state = 0;
 			for (i = 0; i < h; i++)
@@ -648,7 +662,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 				{
 					if (poolall[c].water[i][j] > 0)
 					{
-						growagain1(i, j, index, h, w, &(*(it)), a, a);
+						growagain1(i, j, index, h, w, &(*(it)), a, a);//对每个工件重新生长，阈值抬升
 						state = 1;
 						break;
 					}
@@ -667,6 +681,7 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		c++;
 	}
 
+	//最后一次生长，在生长过程中利用susan判断边界，提取特征
 	c = 0;
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
@@ -690,13 +705,13 @@ int CdemoDlg::Watershed(vector<struct Pool1> &index)
 		}
 		c++;
 	}
-	free(poolall);
+	free(poolall);//释放内存
 	return 1;
 }
 
 /**
 * @brief 显示分割后的水池
-* @param [in] index
+* @param [in] index 保存每个工件信息的向量
 * @return		不同水池绘制不同的颜色
 */
 void CdemoDlg::Dispool(vector<struct Pool1> index)
@@ -741,8 +756,7 @@ void CdemoDlg::Dispool(vector<struct Pool1> index)
 
 /**
 * @brief 删库跑路
-* @param [in] index
-* @todo	注释没写完呢
+* @param [in] index 保存每个工件信息的向量
 */
 void CdemoDlg::freepool(vector<struct Pool1> index)
 {
@@ -752,6 +766,7 @@ void CdemoDlg::freepool(vector<struct Pool1> index)
 	for (auto it = index.begin(); it != index.end(); it++)
 	{
 		pool = (*it).water;
+		//释放用于保存仅包含一个工件的图像的二维数组
 		for (i = 0; i < h; i++)
 		{
 			free(pool[i]);
@@ -762,13 +777,12 @@ void CdemoDlg::freepool(vector<struct Pool1> index)
 
 /**
 * @brief 一次增长获得水洼
-* @param [in] h1
-* @param [in] h2
-* @param [in] &index
-* @param [in] h0
-* @param [in] wo
+* @param [in] h1        种子纵坐标
+* @param [in] w1        种子横坐标
+* @param [in] &index    工件图像链表指针
+* @param [in] h0        图像高度
+* @param [in] w0        图像宽度
 * @param [in] th		阈值
-* @todo	注释没写完呢
 */
 void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, int th)
 {
@@ -792,16 +806,19 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 		}
 	}
 	pool.num = 0;
-	auto it = index.end() - 1;
-	vector<int>obj;
+	auto it = index.end() - 1;//读出向量存储的最后一个结构体，即正在生长的对象
+	vector<int>obj;//待处理（生长）堆栈 用于存储待处理（生长）的像素点
 	obj.push_back(h1);
-	obj.push_back(w1);
+	obj.push_back(w1);//将种子存入待处理（生长）堆栈
 	while (1)
 	{
+		//将待处理堆栈的最后一个待处理像素点推出堆栈，对它周围八个像素点判断是否需要生长
+		//如果像素点满足阈值且未生长，则将其保存在工件图像上，将其推入待处理堆栈中，之后再对其生长
 		w = obj.back();
 		obj.pop_back();
 		h = obj.back();
 		obj.pop_back();
+		// 八邻域 - 1
 		if (pool.water[h - 1][w - 1] == 0 && *(p + (h - 1) * w0 + (w - 1)) < th)
 		{
 			pool.water[h - 1][w - 1] = 1;
@@ -809,6 +826,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h - 1);
 			obj.push_back(w - 1);
 		}
+		// 八邻域 - 2
 		if (pool.water[h - 1][w] == 0 && *(p + (h - 1) * w0 + (w)) < th)
 		{
 			pool.water[h - 1][w] = 1;
@@ -816,6 +834,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h - 1);
 			obj.push_back(w);
 		}
+		// 八邻域 - 3
 		if (pool.water[h - 1][w + 1] == 0 && *(p + (h - 1) * w0 + (w + 1)) < th)
 		{
 			pool.water[h - 1][w + 1] = 1;
@@ -823,7 +842,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h - 1);
 			obj.push_back(w + 1);
 		}
-
+		// 八邻域 - 4
 		if (pool.water[h][w - 1] == 0 && *(p + (h)*w0 + (w - 1)) < th)
 		{
 			pool.water[h][w - 1] = 1;
@@ -831,6 +850,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h);
 			obj.push_back(w - 1);
 		}
+		// 八邻域 - 5
 		if (pool.water[h][w + 1] == 0 && *(p + (h)*w0 + (w + 1)) < th)
 		{
 			pool.water[h][w + 1] = 1;
@@ -838,7 +858,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h);
 			obj.push_back(w + 1);
 		}
-
+		// 八邻域 - 6
 		if (pool.water[h + 1][w - 1] == 0 && *(p + (h + 1) * w0 + (w - 1)) < th)
 		{
 			pool.water[h + 1][w - 1] = 1;
@@ -846,6 +866,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h + 1);
 			obj.push_back(w - 1);
 		}
+		// 八邻域 - 7
 		if (pool.water[h + 1][w] == 0 && *(p + (h + 1) * w0 + (w)) < th)
 		{
 			pool.water[h + 1][w] = 1;
@@ -853,6 +874,7 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h + 1);
 			obj.push_back(w);
 		}
+		// 八邻域 - 8
 		if (pool.water[h + 1][w + 1] == 0 && *(p + (h + 1) * w0 + (w + 1)) < th)
 		{
 			pool.water[h + 1][w + 1] = 1;
@@ -860,24 +882,23 @@ void CdemoDlg::grow(int h1, int w1, vector<struct Pool1> &index, int h0, int w0,
 			obj.push_back(h + 1);
 			obj.push_back(w + 1);
 		}
-		if (obj.empty())
+		if (obj.empty())//若待处理堆栈为空，则跳出循环
 			break;
 	}
 	index.pop_back();
-	index.push_back(pool);
+	index.push_back(pool);//将生长完成的图像推回向量
 }
 
 /**
 * @brief 循环增长水平面稳定获得水池
-* @param [in] h1
-* @param [in] h2
-* @param [in] &index
-* @param [in] h0
-* @param [in] wo
-* @param [in] *pool
+* @param [in] h1        种子纵坐标
+* @param [in] w1        种子横坐标
+* @param [in] &index    工件图像链表指针  
+* @param [in] h0        图像高度
+* @param [in] w0        图像宽度
+* @param [in] *pool     待处理工件对应结构体
 * @param [in] Th		阈值
-* @param [in] wh
-* @todo	注释没写完呢
+* @param [in] wh        图像存储中表达已生长的阈值
 */
 void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh)
 {
@@ -904,20 +925,24 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 	}
 	pool->water[h1][w1] = wh;
 	pool->num = 1;
-	vector<int>obj;
+	vector<int>obj;//待处理（生长）堆栈 用于存储待处理（生长）的像素点
 	obj.push_back(h1);
-	obj.push_back(w1);
+	obj.push_back(w1);//将种子存入待处理（生长）堆栈
 	while (1)
 	{
+		//将待处理堆栈的最后一个待处理像素点推出堆栈，对它周围八个像素点判断是否需要生长
+		//如果像素点满足阈值且未生长，则将其保存在工件图像上，将其推入待处理堆栈中，之后再对其生长
 		w = obj.back();
 		obj.pop_back();
 		h = obj.back();
 		obj.pop_back();
 		num = 0;
 		bar = 0;
+		// 八邻域 - 1
 		if (pool->water[h - 1][w - 1] < wh && *(p + (h - 1) * w0 + (w - 1)) < Th)
 		{
 			state = 1;
+			//判断该种子是否已经被其他水池生长，若已被生长则筑防水坝
 			for (i = 0; i < poolnum; i++)
 			{
 				if (poolall[i].water[h - 1][w - 1] >= 1)
@@ -926,6 +951,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 					break;
 				}
 			}
+			//若未生长则对其生长
 			if (state == 1) {
 				num++;
 				pool->water[h - 1][w - 1] = wh;
@@ -937,6 +963,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
+		// 八邻域 - 2
 		if (pool->water[h - 1][w] < wh && *(p + (h - 1) * w0 + (w)) < Th)
 		{
 			state = 1;
@@ -959,6 +986,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
+		// 八邻域 - 3
 		if (pool->water[h - 1][w + 1] < wh && *(p + (h - 1) * w0 + (w + 1)) < Th)
 		{
 			state = 1;
@@ -981,7 +1009,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
-
+		// 八邻域 - 4
 		if (pool->water[h][w - 1] < wh && *(p + (h)*w0 + (w - 1)) < Th)
 		{
 			state = 1;
@@ -1004,6 +1032,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
+		// 八邻域 - 5
 		if (pool->water[h][w + 1] < wh && *(p + (h)*w0 + (w + 1)) < Th)
 		{
 			state = 1;
@@ -1026,7 +1055,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
-
+		// 八邻域 - 6
 		if (pool->water[h + 1][w - 1] < wh && *(p + (h + 1) * w0 + (w - 1)) < Th)
 		{
 			state = 1;
@@ -1049,6 +1078,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
+		// 八邻域 - 7
 		if (pool->water[h + 1][w] < wh && *(p + (h + 1) * w0 + (w)) < Th)
 		{
 			state = 1;
@@ -1071,6 +1101,7 @@ void CdemoDlg::growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, i
 				bar = 1;
 			}
 		}
+		// 八邻域 - 8
 		if (pool->water[h + 1][w + 1] < wh && *(p + (h + 1) * w0 + (w + 1)) < Th)
 		{
 			state = 1;

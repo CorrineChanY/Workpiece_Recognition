@@ -118,38 +118,39 @@ public:
 	* @return		  处理后的图像信息在m_imageDid
 	* @remarks		  在灰度图m_imageGray上进行
 	*/
-	void Expand();
+	void Expand(int num, int th);
 
 	/**
 	* @brief 基于区域生长的分水岭算法
 	* @param [in] &index
-	* @todo		注释没写完呢
+	* @param index 用于存储找到的每一个工件的结构体并回传
+	* @return 返回说明
+	*     0 fail 算法出错
+	*     1 succeed 算法运行完成
 	*/
 	int Watershed(vector<struct Pool1> &index);
 
 	/**
 	* @brief 一次增长获得水洼
-	* @param [in] h1
-	* @param [in] h2
-	* @param [in] &index
-	* @param [in] h0
-	* @param [in] wo
+	* @param [in] h1        种子纵坐标
+	* @param [in] w1        种子横坐标
+	* @param [in] &index    工件图像链表指针
+	* @param [in] h0        图像高度
+	* @param [in] w0        图像宽度
 	* @param [in] th		阈值
-	* @todo	注释没写完呢
 	*/
 	void grow(int h, int w, vector<struct Pool1> &index, int h0, int w0, int th);
 
 	/**
 	* @brief 循环增长水平面稳定获得水池
-	* @param [in] h1
-	* @param [in] h2
-	* @param [in] &index
-	* @param [in] h0
-	* @param [in] wo
-	* @param [in] *pool
+	* @param [in] h1        种子纵坐标
+	* @param [in] w1        种子横坐标
+	* @param [in] &index    工件图像链表指针
+	* @param [in] h0        图像高度
+	* @param [in] w0        图像宽度
+	* @param [in] *pool     待处理工件对应结构体
 	* @param [in] Th		阈值
-	* @param [in] wh
-	* @todo	注释没写完呢
+	* @param [in] wh        图像存储中表达已生长的阈值
 	*/
 	void growagain1(int h1, int w1, vector<struct Pool1> &index, int h0, int w0, struct Pool1* pool, int Th, int wh);
 
@@ -178,8 +179,7 @@ public:
 
 	/**
 	* @brief 删库跑路
-	* @param [in] index
-	* @todo	注释没写完呢
+	* @param [in] index     工件图像链表指针
 	*/
 	void freepool(vector<struct Pool1> index);
 

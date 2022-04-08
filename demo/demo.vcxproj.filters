@@ -33,9 +33,6 @@
     <ClInclude Include="demoDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="digital.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="disNums.h">
       <Filter>头文件</Filter>
     </ClInclude>

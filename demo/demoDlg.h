@@ -60,7 +60,7 @@ public:
 	// 1: 正在识别 0: 停止识别
 	int Recgon;
 
-	// 
+	// @todo 注释还没写呢
 	int Wrong;
 
 	// 类别枚举
@@ -122,11 +122,9 @@ public:
 
 	/**
 	* @brief 基于区域生长的分水岭算法
-	* @param [in] &index
-	* @param index 用于存储找到的每一个工件的结构体并回传
-	* @return 返回说明
-	*     0 fail 算法出错
-	*     1 succeed 算法运行完成
+	* @param [in] &index 用于存储找到的每一个工件的结构体并回传
+	* @retval 0 fail 算法出错
+	* @retval 1 succeed 算法运行完成
 	*/
 	int Watershed(vector<struct Pool1> &index);
 
@@ -200,7 +198,7 @@ public:
 	void JudgePiece(vector<struct Pool1> &index);
 
 	/**
-	* @brief
+	* @brief 处理主函数
 	*/
 	void Change_Image();
 

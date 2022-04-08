@@ -226,7 +226,7 @@ void CdemoDlg::OnBnClickedOpencam()
 
 /*!
 *  \brief 在pic控件中显示图像m_image
-*  \param [in]	m_image
+*  \param       [in]	m_image
 *  \retval  	void
 */
 void CdemoDlg::DrawImage()
@@ -341,7 +341,7 @@ void CdemoDlg::reset() {
 }
 
 /**
-* @brief 
+* @brief 处理主函数
 */
 void CdemoDlg::Change_Image()
 {
@@ -366,6 +366,8 @@ void CdemoDlg::OnBnClickedCancel()
 
 /**
 * @brief 将原图像转换成灰度图
+* @param  m_image
+* @return m_image m_imageDid
 */
 void CdemoDlg::Image_Gray()
 {
@@ -473,9 +475,10 @@ void CdemoDlg::Corrode(int num, int th)
 
 /**
 * @brief 膨胀
-* @return		  处理后的图像信息在m_imageDid
+* @param [in] num 膨胀次数
+* @param [in] th  阈值
+* @return		  处理后的图像信息在m_imageDid和m_imageDid1
 * @remarks		  在灰度图m_imageGray上进行
-* @todo			  待完善给定处理次数和可变阈值
 */
 void CdemoDlg::Expand(int num, int th)
 {
@@ -533,11 +536,9 @@ void CdemoDlg::Expand(int num, int th)
 
 /**
 * @brief 基于区域生长的分水岭算法
-* @param [in] &index
-* @param index 用于存储找到的每一个工件的结构体并回传
-* @return 返回说明
-*     0 fail 算法出错
-*     1 succeed 算法运行完成
+* @param [in] &index 用于存储找到的每一个工件的结构体并回传
+* @retval 0 fail 算法出错
+* @retval 1 succeed 算法运行完成
 */
 int CdemoDlg::Watershed(vector<struct Pool1>& index)
 {
@@ -1555,7 +1556,6 @@ void CdemoDlg::grow_susan(int h1, int w1, vector<struct Pool1> &index, int h0, i
 /**
 * @brief 框出工件，并输出工件序号、其他几何特征
 * @param [in] &index	工件图像链表指针
-* @return				
 * @remarks				在原图上进行
 */
 void CdemoDlg::Disedge(vector<struct Pool1> &index)
@@ -1687,7 +1687,6 @@ void CdemoDlg::Disedge(vector<struct Pool1> &index)
 /**
 * @brief 判断工件类别
 * @param [in] &index	工件图像链表指针
-* @return
 * @remarks				分别在原图上进行
 */
 void CdemoDlg::JudgePiece(vector<struct Pool1> &index)

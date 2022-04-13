@@ -1,11 +1,18 @@
 ﻿
 // demoDlg.h: 头文件
-//
 
 #pragma once
 #include "MVGigE.h"
 #include "MVImage.h"
-#include<vector>
+#include "pch.h"
+#include "framework.h"
+#include "demo.h"
+#include "afxdialogex.h"
+#include <malloc.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string> 
 #define Sth 15000
 using namespace std;
 
@@ -60,7 +67,9 @@ public:
 	// 1: 正在识别 0: 停止识别
 	int Recgon;
 
-	// @todo 注释还没写呢
+	// 算法错误标志位
+	// 0: 算法出错 图像未处理 不显示
+	// 1: 算法正确
 	int Wrong;
 
 	// 类别枚举
